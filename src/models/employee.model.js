@@ -24,7 +24,13 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
-      unique: [true, 'Phone number must be unique']
+      unique: [true, 'Phone number must be unique'],
+      validate: {
+        validator: function (v) {
+          return /^\+?[0-9]{7,15}$/.test(v);
+        },
+        message: 'Phone number must be between 7 and 15 digits',
+      },
     },
     age: {
       type: Number,
@@ -45,19 +51,47 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
-      required: [true, 'Address is required']
+      required: [true, 'Address is required'],
     },
     social_links: {
-      facebook: { type: String, default: '' },
-      twitter: { type: String, default: '' },
-      instagram: { type: String, default: '' },
-      youtube: { type: String, default: '' },
+      facebook: {
+        type: String,
+        default: '',
+        validate: {
+          validator: (v) => !v || validator.isURL(v),
+          message: 'Invalid Facebook URL',
+        },
+      },
+      twitter: {
+        type: String,
+        default: '',
+        validate: {
+          validator: (v) => !v || validator.isURL(v),
+          message: 'Invalid Twitter URL',
+        },
+      },
+      instagram: {
+        type: String,
+        default: '',
+        validate: {
+          validator: (v) => !v || validator.isURL(v),
+          message: 'Invalid Instagram URL',
+        },
+      },
+      youtube: {
+        type: String,
+        default: '',
+        validate: {
+          validator: (v) => !v || validator.isURL(v),
+          message: 'Invalid YouTube URL',
+        },
+      },
     },
     about_me: {
       type: String,
       trim: true,
       default: '',
-      required: [true, 'About me is required']
+      required: [true, 'About me is required'],
     },
     profile_image: {
       public_id: {
@@ -76,7 +110,10 @@ const employeeSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
     toJSON: {
       virtuals: true,
       transform: function (doc, ret) {

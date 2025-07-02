@@ -38,14 +38,26 @@ const departmentSchema = new mongoose.Schema(
       virtuals: true,
       transform: function (doc, ret) {
         ret.id = ret._id;
+        ret.created_at = ret.createdAt;
+        ret.updated_at = ret.updatedAt;
         delete ret._id;
         delete ret.__v;
+        delete ret.createdAt;
+        delete ret.updatedAt;
         return ret;
       },
     },
   }
 );
 
+// Virtual to get full list of employees in this department
+departmentSchema.virtual('employees', {
+  ref: 'Employee',
+  localField: '_id',
+  foreignField: 'department_id',
+});
+
+// Virtual to get total count of employees in this department
 departmentSchema.virtual('employee_count', {
   ref: 'Employee',
   localField: '_id',

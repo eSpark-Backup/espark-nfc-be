@@ -3,6 +3,7 @@ import cors from 'cors';
 import errorHandler from './middlewares/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import departmentRoutes from './routes/department.routes.js';
+import employeeRoutes from './routes/employee.routes.js';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/employees', employeeRoutes);
 
 // Global error handler
 app.use(errorHandler);

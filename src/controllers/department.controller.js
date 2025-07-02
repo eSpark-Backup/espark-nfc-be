@@ -4,6 +4,7 @@ import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
 import { deleteFromCloudinary } from '../utils/cloudinary.js';
 import applyQueryOptions from '../utils/queryHelper.js';
+import Employee from '../models/employee.model.js';
 
 const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
@@ -51,10 +52,27 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
 });
 
 export const getAllDepartments = asyncWrapper(async (req, res) => {
-  const query = Department.find();
+  const includeEmployees = req.query.include_employees === 'true';
+
+  let baseQuery = Department.find();
+
+  // Always populate employee_count
+  baseQuery = baseQuery.populate('employee_count');
+
+  // Conditionally populate employees
+  if (includeEmployees) {
+    baseQuery = baseQuery.populate({
+      path: 'employees',
+      options: {
+        sort: { createdAt: -1 },
+        limit: 5, // limit to 5 recent employees (adjustable)
+      },
+    });
+  }
+
   const { results: departments, pagination } = await applyQueryOptions(
     Department,
-    query,
+    baseQuery,
     req.query,
     ['name', 'email'],
     ['name', 'email', 'createdAt']
@@ -76,9 +94,24 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   });
 });
 
+
 export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-  const department = await Department.findById(id);
+  const includeEmployees = req.query.include_employees === 'true';
+
+  let query = Department.findById(id).populate('employee_count');
+
+  if (includeEmployees) {
+    query = query.populate({
+      path: 'employees',
+      options: {
+        sort: { createdAt: -1 },
+        limit: 10,
+      },
+    });
+  }
+
+  const department = await query;
 
   if (!department) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
@@ -89,6 +122,8 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
     department,
   });
 });
+
+
 
 export const updateDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -149,6 +184,17 @@ export const deleteDepartment = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
+  // Check if any employees are linked to this department
+  const employeeCount = await Employee.countDocuments({ department_id: id });
+  if (employeeCount > 0) {
+    return next(
+      new CustomError(
+        HTTP_STATUS.BAD_REQUEST,
+        'Cannot delete department with assigned employees'
+      )
+    );
+  }
+
   await deleteFromCloudinary(department.profile_image.public_id);
   await department.deleteOne();
 
@@ -157,3 +203,4 @@ export const deleteDepartment = asyncWrapper(async (req, res, next) => {
     message: 'Department deleted successfully',
   });
 });
+
