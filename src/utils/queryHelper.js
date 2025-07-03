@@ -28,14 +28,25 @@ const applyQueryOptions = async (
     }
   }
 
-  // Sorting
-  if (queryParams.sort_by) {
-    const sortBy = queryParams.sort_by;
-    const sortOrder = queryParams.sort_order === 'desc' ? -1 : 1;
-    if (sortableFields.length === 0 || sortableFields.includes(sortBy)) {
-      query.sort({ [sortBy]: sortOrder });
-    }
+  // Improved Sorting
+  let sortField = 'created_at';
+  let sortOrder = -1; // Default to descending
+
+  if (
+    queryParams.sort_by &&
+    (sortableFields.length === 0 || sortableFields.includes(queryParams.sort_by))
+  ) {
+    sortField = queryParams.sort_by;
   }
+
+  if (
+    queryParams.sort_order &&
+    String(queryParams.sort_order).toLowerCase() === 'asc'
+  ) {
+    sortOrder = 1;
+  }
+
+  query.sort({ [sortField]: sortOrder });
 
   // Pagination
   query.skip(skip).limit(limit);

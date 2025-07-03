@@ -33,17 +33,16 @@ const departmentSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      createdAt: 'created_at', 
+      updatedAt: 'updated_at'
+    },
     toJSON: {
       virtuals: true,
       transform: function (doc, ret) {
         ret.id = ret._id;
-        ret.created_at = ret.createdAt;
-        ret.updated_at = ret.updatedAt;
         delete ret._id;
         delete ret.__v;
-        delete ret.createdAt;
-        delete ret.updatedAt;
         return ret;
       },
     },

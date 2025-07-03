@@ -76,12 +76,12 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     baseQuery,
     req.query,
     ['name', 'email', 'phone_number', 'designation'],
-    ['name', 'email', 'createdAt']
+    ['name', 'email', 'created_at']
   );
 
   if (employees.length === 0) {
     return res.status(HTTP_STATUS.OK).json({
-      success: false,
+      success: true,
       message: 'No employees found',
       employees: [],
       pagination,
