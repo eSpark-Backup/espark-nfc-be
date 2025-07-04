@@ -7,13 +7,13 @@ import {
   deleteAdmin,
 } from '../controllers/admin.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
+import isSuperAdmin from '../middlewares/isSuperAdmin.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateAdmin,
   validateUpdateAdmin,
   validateAdminId,
 } from '../validators/admin.validator.js';
-import isSuperAdmin from '../middlewares/isSuperAdmin.js';
 
 const router = express.Router();
 
@@ -26,7 +26,9 @@ router.post(
   createAdmin
 );
 
+
 router.get('/', getAllAdmins);
+
 
 router.get(
   '/:id',
@@ -35,12 +37,14 @@ router.get(
   getAdminById
 );
 
+
 router.patch(
   '/:id',
   validateUpdateAdmin,
   validateRequest,
   updateAdmin
 );
+
 
 router.delete(
   '/:id',

@@ -26,6 +26,10 @@ const adminSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       trim: true,
       unique: true,
+      validate: {
+        validator: validator.isMobilePhone,
+        message: 'Invalid phone number',
+      },
     },
     password: {
       type: String,
@@ -37,6 +41,11 @@ const adminSchema = new mongoose.Schema(
       type: String,
       enum: ['super-admin', 'admin'],
       default: 'admin',
+      immutable: true, // prevents changes after creation
+    },
+    is_active: {
+      type: Boolean,
+      default: true,
     },
   },
   {

@@ -1,4 +1,4 @@
-import { body, param } from 'express-validator';
+import { body, param, check, validationResult } from 'express-validator';
 
 export const validateCreateAdmin = [
   body('full_name')
@@ -13,16 +13,36 @@ export const validateCreateAdmin = [
 
   body('phone_number')
     .trim()
-    .notEmpty().withMessage('Phone number is required'),
+    .notEmpty().withMessage('Phone number is required')
+    .isMobilePhone('any').withMessage('Invalid phone number'),
 
   body('password')
     .notEmpty().withMessage('Password is required')
-    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .matches(/[a-z]/).withMessage('Password must contain a lowercase letter')
+    .matches(/[A-Z]/).withMessage('Password must contain an uppercase letter')
+    .matches(/\d/).withMessage('Password must contain a number')
+    .matches(/[\W_]/).withMessage('Password must contain a special character'),
 ];
 
 export const validateUpdateAdmin = [
   param('id')
     .isMongoId().withMessage('Invalid admin ID'),
+
+  // Custom middleware to ensure at least one field is present
+  (req, res, next) => {
+    const updatableFields = ['full_name', 'email', 'phone_number'];
+    const hasValidField = updatableFields.some(field => field in req.body);
+
+    if (!hasValidField) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one field (full_name, email, or phone_number) must be provided to update',
+      });
+    }
+
+    next();
+  },
 
   body('full_name')
     .optional()
@@ -39,8 +59,10 @@ export const validateUpdateAdmin = [
   body('phone_number')
     .optional()
     .trim()
-    .notEmpty().withMessage('Phone number cannot be empty'),
+    .notEmpty().withMessage('Phone number cannot be empty')
+    .isMobilePhone('any').withMessage('Invalid phone number'),
 ];
+
 
 export const validateAdminId = [
   param('id')

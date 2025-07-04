@@ -6,6 +6,7 @@ import HTTP_STATUS from '../constants/httpStatus.js';
 export const createAdmin = asyncWrapper(async (req, res, next) => {
   const { full_name, email, phone_number, password } = req.body;
 
+  // Check for existing admin
   const existing = await Admin.findOne({
     $or: [{ email }, { phone_number }],
   });
@@ -39,9 +40,11 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: admins.length > 0 ? 'Admins fetched successfully' : 'No admins found',
     admins,
   });
 });
+
 
 export const getAdminById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -54,10 +57,10 @@ export const getAdminById = asyncWrapper(async (req, res, next) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: 'Admin fetched successfully',
     admin,
   });
 });
-
 
 export const updateAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -68,38 +71,25 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  const isSameName = admin.full_name === full_name;
-  const isSameEmail = admin.email === email;
-  const isSamePhone = admin.phone_number === phone_number;
+  // Check for duplicate email or phone (excluding current record)
+  const duplicate = await Admin.findOne({
+    $or: [{ email }, { phone_number }],
+    _id: { $ne: id },
+  });
 
-  if (isSameName && isSameEmail && isSamePhone) {
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Admin updated successfully',
-      admin,
-    });
+  if (duplicate) {
+    return next(
+      new CustomError(
+        HTTP_STATUS.BAD_REQUEST,
+        'Another admin with this email or phone number already exists'
+      )
+    );
   }
 
-  // Check for duplicate only if email or phone number has changed
-  if (!isSameEmail || !isSamePhone) {
-    const duplicate = await Admin.findOne({
-      $or: [{ email }, { phone_number }],
-      _id: { $ne: id },
-    });
-
-    if (duplicate) {
-      return next(
-        new CustomError(
-          HTTP_STATUS.BAD_REQUEST,
-          'Another admin with this email or phone number already exists'
-        )
-      );
-    }
-  }
-
-  admin.full_name = full_name || admin.full_name;
-  admin.email = email || admin.email;
-  admin.phone_number = phone_number || admin.phone_number;
+  // Only update if value is provided
+  if (full_name) admin.full_name = full_name;
+  if (email) admin.email = email;
+  if (phone_number) admin.phone_number = phone_number;
 
   await admin.save();
 
@@ -110,10 +100,17 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
+
+  if (req.user.id === id) {
+    return next(
+      new CustomError(
+        HTTP_STATUS.BAD_REQUEST,
+        'You cannot delete your own admin account'
+      )
+    );
+  }
 
   const admin = await Admin.findById(id);
   if (!admin || admin.role !== 'admin') {
