@@ -17,6 +17,10 @@ const envConfig = {
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+  
+  superAdmin: {
+  secret: process.env.SUPER_ADMIN_CREATION_SECRET,
+  },
 };
 
 export default envConfig;

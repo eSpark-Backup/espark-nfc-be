@@ -1,11 +1,9 @@
 import inquirer from 'inquirer';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import validator from 'validator';
 import Admin from '../src/models/admin.model.js';
 import connectDB from '../src/db/connection.js';
-
-dotenv.config();
+import envConfig from '../src/config/envConfig.js';
 
 const createSuperAdmin = async () => {
   try {
@@ -26,7 +24,7 @@ const createSuperAdmin = async () => {
         message: '\nEnter super admin creation secret:',
         mask: '*',
         validate: input =>
-          input === process.env.SUPER_ADMIN_CREATION_SECRET ||
+          input === envConfig.superAdmin.secret ||
           '❌ Invalid secret. Access denied.',
       },
     ]);
