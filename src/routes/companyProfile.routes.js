@@ -13,10 +13,11 @@ import {
   validateUpdateCompanyProfile,
   validateCompanyProfileId,
 } from '../validators/companyProfile.validator.js';
+import isSuperAdmin from '../middlewares/isSuperAdmin.js';
 
 const router = express.Router();
 
-// router.use(verifyToken);
+router.use(verifyToken, isSuperAdmin);
 
 router.post(
   '/',

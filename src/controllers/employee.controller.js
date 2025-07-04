@@ -127,6 +127,34 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
+  const newEmail = email?.toLowerCase() || employee.email;
+  const newDeptId = department_id || employee.department_id.toString();
+
+  const socialUnchanged =
+    (employee.social_links.facebook || '') === (facebook || '') &&
+    (employee.social_links.twitter || '') === (twitter || '') &&
+    (employee.social_links.instagram || '') === (instagram || '') &&
+    (employee.social_links.youtube || '') === (youtube || '');
+
+  const isSameEmail = newEmail === employee.email;
+  const isSameDept = newDeptId === employee.department_id.toString();
+  const isSameImage = req.file
+    ? false
+    : true;
+
+  const otherFieldsUnchanged = Object.entries(req.body).every(([key, value]) => {
+    if (['email', 'facebook', 'twitter', 'instagram', 'youtube'].includes(key)) return true;
+    return employee[key]?.toString() === value?.toString();
+  });
+
+  if (isSameEmail && isSameDept && isSameImage && socialUnchanged && otherFieldsUnchanged) {
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Employee updated successfully',
+      employee,
+    });
+  }
+
   // Check for duplicate email and assign only if changed
   if (email && email.toLowerCase() !== employee.email.toLowerCase()) {
     const duplicateEmail = await Employee.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
@@ -174,9 +202,11 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: 'Employee updated successfully',
     employee,
   });
 });
+
 
 
 // Delete employee

@@ -1,9 +1,18 @@
 import express from 'express';
-import { loginAdmin } from '../controllers/auth.controller.js';
+import { login } from '../controllers/auth.controller.js';
+import validateRequest from '../middlewares/validateRequest.js';
+import { body } from 'express-validator';
 
 const router = express.Router();
 
-// Admin login route
-router.post('/login', loginAdmin);
+router.post(
+  '/login',
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required'),
+  ],
+  validateRequest,
+  login
+);
 
 export default router;

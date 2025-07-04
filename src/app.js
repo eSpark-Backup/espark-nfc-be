@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import errorHandler from './middlewares/errorHandler.js';
-import authRoutes from './routes/auth.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import departmentRoutes from './routes/department.routes.js';
 import employeeRoutes from './routes/employee.routes.js';
 import companyProfileRoutes from './routes/companyProfile.routes.js';
+import authRoutes from './routes/auth.routes.js';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admins', adminRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/company-profile', companyProfileRoutes);

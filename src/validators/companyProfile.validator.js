@@ -36,6 +36,7 @@ export const validateUpdateCompanyProfile = [
     .isMongoId().withMessage('Invalid company profile ID'),
 
   body('company_name')
+    .optional()
     .trim()
     .notEmpty().withMessage('Company name is required')
     .isLength({ max: 150 }).withMessage('Company name must not exceed 150 characters'),
@@ -51,6 +52,7 @@ export const validateUpdateCompanyProfile = [
     .isLength({ max: 30 }).withMessage('Established field must not exceed 30 characters'),
 
   body('address')
+    .optional()
     .trim()
     .notEmpty().withMessage('Address is required'),
 
@@ -64,6 +66,7 @@ export const validateUpdateCompanyProfile = [
     .trim()
     .isURL().withMessage('Invalid redirect URL'),
 ];
+
 
 export const validateCompanyProfileId = [
   param('id')

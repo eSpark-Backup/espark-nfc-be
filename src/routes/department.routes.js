@@ -17,7 +17,7 @@ import {
 
 const router = express.Router();
 
-// router.use(verifyToken);
+router.use(verifyToken);
 
 router.post(
   '/',

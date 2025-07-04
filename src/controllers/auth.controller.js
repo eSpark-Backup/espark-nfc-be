@@ -1,28 +1,40 @@
 import Admin from '../models/admin.model.js';
-import { generateToken } from '../utils/token.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
-import httpStatusCodes from '../constants/httpStatus.js';
+import HTTP_STATUS from '../constants/httpStatus.js';
+import { generateToken } from '../utils/token.js';
+import bcrypt from 'bcryptjs';
 
-export const loginAdmin = asyncWrapper(async (req, res, next) => {
+export const login = asyncWrapper(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new CustomError(httpStatusCodes.BAD_REQUEST, 'Email and password are required'));
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email and password are required'));
   }
 
   const admin = await Admin.findOne({ email }).select('+password');
 
-  if (!admin || !(await admin.comparePassword(password))) {
-    return next(new CustomError(httpStatusCodes.UNAUTHORIZED, 'Invalid credentials'));
+  if (!admin) {
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
   }
 
-  const token = generateToken({ id: admin._id });
+  const isMatch = await bcrypt.compare(password, admin.password);
+  if (!isMatch) {
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
+  }
 
-  res.status(httpStatusCodes.OK).json({
+  const token = generateToken({ id: admin._id, role: admin.role });
+
+  res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Login successful',
     token,
-    admin,
+    admin: {
+      id: admin._id,
+      full_name: admin.full_name,
+      email: admin.email,
+      phone_number: admin.phone_number,
+      role: admin.role,
+    },
   });
 });

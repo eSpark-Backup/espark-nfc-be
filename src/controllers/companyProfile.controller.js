@@ -76,23 +76,48 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  if (!profileImage) {
-    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
+  const isSameName = company_name ? companyProfile.company_name === company_name : true;
+  const isSameWebsite = website_link ? companyProfile.website_link === website_link : true;
+  const isSameEstablished = established ? companyProfile.established === established : true;
+  const isSameAddress = address ? companyProfile.address === address : true;
+  const isSameButtonName = button_name ? companyProfile.button_name === button_name : true;
+  const isSameButtonUrl = button_redirect_url ? companyProfile.button_redirect_url === button_redirect_url : true;
+  const isSameImage = profileImage
+    ? companyProfile.profile_image?.public_id === profileImage.public_id
+    : true;
+
+  if (
+    isSameName &&
+    isSameWebsite &&
+    isSameEstablished &&
+    isSameAddress &&
+    isSameButtonName &&
+    isSameButtonUrl &&
+    isSameImage
+  ) {
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Company profile updated successfully',
+      company_profile: companyProfile,
+    });
   }
 
-  // Delete previous image from Cloudinary
-  await deleteFromCloudinary(companyProfile.profile_image.public_id);
+  // Update profile image only if a new one is provided
+  if (profileImage) {
+    await deleteFromCloudinary(companyProfile.profile_image.public_id);
+    companyProfile.profile_image = {
+      public_id: profileImage.public_id,
+      url: profileImage.secure_url,
+    };
+  }
 
-  companyProfile.company_name = company_name;
-  companyProfile.website_link = website_link;
-  companyProfile.established = established;
-  companyProfile.address = address;
-  companyProfile.button_name = button_name;
-  companyProfile.button_redirect_url = button_redirect_url;
-  companyProfile.profile_image = {
-    public_id: profileImage.public_id,
-    url: profileImage.secure_url,
-  };
+  // Safely assign only present fields
+  if (company_name) companyProfile.company_name = company_name;
+  if (website_link) companyProfile.website_link = website_link;
+  if (established) companyProfile.established = established;
+  if (address) companyProfile.address = address;
+  if (button_name) companyProfile.button_name = button_name;
+  if (button_redirect_url) companyProfile.button_redirect_url = button_redirect_url;
 
   await companyProfile.save();
 
@@ -102,6 +127,8 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     company_profile: companyProfile,
   });
 });
+
+
 
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;

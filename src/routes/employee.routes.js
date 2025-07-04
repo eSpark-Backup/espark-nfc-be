@@ -8,6 +8,7 @@ import {
   deleteEmployee,
 } from '../controllers/employee.controller.js';
 import validateRequest from '../middlewares/validateRequest.js';
+import verifyToken from '../middlewares/authMiddleware.js';
 import {
   validateCreateEmployee,
   validateUpdateEmployee,
@@ -15,6 +16,8 @@ import {
 } from '../validators/employee.validator.js';
 
 const router = express.Router();
+
+router.use(verifyToken);
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });

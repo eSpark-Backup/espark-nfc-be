@@ -18,7 +18,7 @@ const companyProfileSchema = new mongoose.Schema(
       },
     },
     established: {
-      type: Number,
+      type: String,
       trim: true,
       maxlength: [30, 'Established field must not exceed 30 characters'],
     },

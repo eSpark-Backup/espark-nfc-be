@@ -123,8 +123,6 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-
 export const updateDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { name, email } = req.body;
@@ -139,33 +137,51 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const normalizedName = normalize(name);
-  const normalizedEmail = email.toLowerCase();
+  const normalizedName = name ? normalize(name) : department.name;
+  const normalizedEmail = email ? email.toLowerCase() : department.email;
 
-  const duplicate = await Department.findOne({
-    $or: [
-      { email: normalizedEmail },
-      { name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } },
-    ],
-    _id: { $ne: id },
-  });
+  const isSameName = department.name === normalizedName;
+  const isSameEmail = department.email === normalizedEmail;
+  const isSameImage = department.profile_image?.public_id === profileImage.public_id;
 
-  if (duplicate) {
-    return next(
-      new CustomError(
-        HTTP_STATUS.BAD_REQUEST,
-        'Another department with the same name or email already exists'
-      )
-    );
+  if (isSameName && isSameEmail && isSameImage) {
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Department updated successfully',
+      department,
+    });
   }
 
+  // Only check for duplicate if name or email is changing
+  if (!isSameName || !isSameEmail) {
+    const duplicate = await Department.findOne({
+      $or: [
+        { email: normalizedEmail },
+        { name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } },
+      ],
+      _id: { $ne: id },
+    });
+
+    if (duplicate) {
+      return next(
+        new CustomError(
+          HTTP_STATUS.BAD_REQUEST,
+          'Another department with the same name or email already exists'
+        )
+      );
+    }
+  }
+
+  // Update image
   await deleteFromCloudinary(department.profile_image.public_id);
   department.profile_image = {
     public_id: profileImage.public_id,
     url: profileImage.secure_url,
   };
-  department.name = name;
-  department.email = email;
+
+  // Update only if provided
+  if (name) department.name = name;
+  if (email) department.email = email;
 
   await department.save();
 
@@ -175,6 +191,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     department,
   });
 });
+
 
 export const deleteDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
