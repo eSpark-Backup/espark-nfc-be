@@ -40,11 +40,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const { url: imageUrl, key: imageKey } = await uploadToS3(
-    req.file.buffer,
-    req.file.originalname,
-    req.file.mimetype
-  );
+  const fileKey = `${Date.now()}-${req.file.originalname}`;
+  const uploadResult = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
 
   const employee = await Employee.create({
     name,
@@ -62,8 +59,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       instagram: instagram || '',
       youtube: youtube || '',
     },
-    image_url: imageUrl,
-    image_key: imageKey,
+    image_url: uploadResult.url,
+    image_key: fileKey,
   });
 
   res.status(HTTP_STATUS.CREATED).json({ success: true, employee });
@@ -183,14 +180,11 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
       await deleteFromS3(employee.image_key);
     }
 
-    const { url: imageUrl, key: imageKey } = await uploadToS3(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype
-    );
+    const fileKey = `${Date.now()}-${req.file.originalname}`;
+    const uploadResult = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
 
-    employee.image_url = imageUrl;
-    employee.image_key = imageKey;
+    employee.image_url = uploadResult.url;
+    employee.image_key = fileKey;
   }
 
   await employee.save();

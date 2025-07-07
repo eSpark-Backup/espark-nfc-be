@@ -19,11 +19,8 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Company profile already exists'));
   }
 
-  const { url: imageUrl, key: imageKey } = await uploadToS3(
-    profileImage.buffer,
-    profileImage.originalname,
-    profileImage.mimetype
-  );
+  const fileKey = `${Date.now()}-${profileImage.originalname}`;
+  const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
 
   const companyProfile = await CompanyProfile.create({
     company_name,
@@ -32,8 +29,8 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     address,
     button_name,
     button_redirect_url,
-    image_url: imageUrl,
-    image_key: imageKey,
+    image_url: uploadResult.url,
+    image_key: fileKey,
   });
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -94,23 +91,18 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  // Update profile image only if a new one is provided
   if (profileImage) {
     if (companyProfile.image_key) {
       await deleteFromS3(companyProfile.image_key);
     }
 
-    const { url: imageUrl, key: imageKey } = await uploadToS3(
-      profileImage.buffer,
-      profileImage.originalname,
-      profileImage.mimetype
-    );
+    const fileKey = `${Date.now()}-${profileImage.originalname}`;
+    const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
 
-    companyProfile.image_url = imageUrl;
-    companyProfile.image_key = imageKey;
+    companyProfile.image_url = uploadResult.url;
+    companyProfile.image_key = fileKey;
   }
 
-  // Safely assign only present fields
   if (company_name) companyProfile.company_name = company_name;
   if (website_link) companyProfile.website_link = website_link;
   if (established) companyProfile.established = established;

@@ -6,7 +6,7 @@ import {
   deleteCompanyProfile,
 } from '../controllers/companyProfile.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
-import upload from '../middlewares/multer.js'; // no cloudinaryUpload anymore
+import upload from '../middlewares/uploadMiddleware.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateCompanyProfile,

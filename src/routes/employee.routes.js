@@ -8,7 +8,7 @@ import {
 } from '../controllers/employee.controller.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import verifyToken from '../middlewares/authMiddleware.js';
-import upload from '../middlewares/multer.js';
+import upload from '../middlewares/uploadMiddleware.js';
 import {
   validateCreateEmployee,
   validateUpdateEmployee,

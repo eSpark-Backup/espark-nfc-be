@@ -7,7 +7,7 @@ import {
   deleteDepartment,
 } from '../controllers/department.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
-import upload from '../middlewares/multer.js';
+import upload from '../middlewares/uploadMiddleware.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateDepartment,

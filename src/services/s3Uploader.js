@@ -1,29 +1,44 @@
-import s3 from '../utils/s3.js';
-import { v4 as uuid4 } from 'uuid';
+import AWS from 'aws-sdk';
+import envConfig from '../config/envConfig.js';
+
+const s3 = new AWS.S3({
+  region: envConfig.s3.region,
+  endpoint: envConfig.s3.endpoint,
+  accessKeyId: envConfig.s3.accessKey,
+  secretAccessKey: envConfig.s3.secretKey,
+  signatureVersion: 'v4',
+  s3ForcePathStyle: true,
+});
+
+const BUCKET = envConfig.s3.bucket;
 
 export const uploadToS3 = async (fileBuffer, originalName, mimeType) => {
-  const fileKey = `${uuid4()}-${originalName}`;
+    const uniqueFileName = `${Date.now()}-${originalName}`;
 
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: fileKey,
-    Body: fileBuffer,
-    ContentType: mimeType,
-    ACL: 'public-read',
-  };
+    // Defensive check: ensure fileBuffer is a Buffer
+    if (!Buffer.isBuffer(fileBuffer)) {
+      throw new Error('Provided fileBuffer is not a valid Buffer.');
+    }
 
-  await s3.upload(params).promise();
+    const params = {
+      Bucket: BUCKET,
+      Key: uniqueFileName,
+      Body: fileBuffer, // must be a Buffer
+      ContentType: mimeType,
+    };
 
-  return {
-    key: fileKey,
-    url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`,
-  };
+    const uploaded = await s3.upload(params).promise();
+
+    return {
+      key: uploaded.Key,
+      url: uploaded.Location,
+    };
 };
 
-export const deleteFromS3 = async (fileKey) => {
+export const deleteFromS3 = async (key) => {
   const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: fileKey,
+    Bucket: BUCKET,
+    Key: key,
   };
 
   await s3.deleteObject(params).promise();

@@ -32,17 +32,18 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  const { url: imageUrl, key: imageKey } = await uploadToS3(
-    profileImage.buffer,
-    profileImage.originalname,
-    profileImage.mimetype
-  );
+  const fileKey = `${Date.now()}-${profileImage.originalname}`;
+  console.log('🧪 File Buffer Check:', {
+    type: typeof req.file.buffer,
+    isBuffer: Buffer.isBuffer(req.file.buffer),
+  });
+  const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
 
   const department = await Department.create({
     name,
     email,
-    image_url: imageUrl,
-    image_key: imageKey,
+    image_url: uploadResult.url,
+    image_key: fileKey,
   });
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -57,10 +58,8 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
 
   let baseQuery = Department.find();
 
-  // Always populate employee_count
   baseQuery = baseQuery.populate('employee_count');
 
-  // Conditionally populate employees
   if (includeEmployees) {
     baseQuery = baseQuery.populate({
       path: 'employees',
@@ -142,7 +141,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
 
   const isSameName = department.name === normalizedName;
   const isSameEmail = department.email === normalizedEmail;
-  const isSameImage = false; // we always treat a new file as a change
+  const isSameImage = false;
 
   if (isSameName && isSameEmail && isSameImage) {
     return res.status(HTTP_STATUS.OK).json({
@@ -171,20 +170,15 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  // Delete old image from S3
   if (department.image_key) {
     await deleteFromS3(department.image_key);
   }
 
-  // Upload new image to S3
-  const { url: imageUrl, key: imageKey } = await uploadToS3(
-    profileImage.buffer,
-    profileImage.originalname,
-    profileImage.mimetype
-  );
+  const fileKey = `${Date.now()}-${profileImage.originalname}`;
+  const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
 
-  department.image_url = imageUrl;
-  department.image_key = imageKey;
+  department.image_url = uploadResult.url;
+  department.image_key = fileKey;
 
   if (name) department.name = name;
   if (email) department.email = email;

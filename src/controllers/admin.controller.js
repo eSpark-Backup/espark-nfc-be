@@ -25,10 +25,11 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   let profile_image = { public_id: null, url: null };
 
   if (req.file) {
-    const uploaded = await uploadToS3(req.file, 'admin_profiles');
+    const fileKey = `admin_profiles/${Date.now()}-${req.file.originalname}`;
+    const uploaded = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
     profile_image = {
-      public_id: uploaded?.Key || null,
-      url: uploaded?.Location || null,
+      public_id: fileKey,
+      url: uploaded?.url || null,
     };
   }
 
@@ -104,35 +105,50 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  const duplicate = await Admin.findOne({
-    $or: [{ email }, { phone_number }],
-    _id: { $ne: id },
-  });
-
-  if (duplicate) {
+  // ✅ Prevent password update via this route
+  if ('password' in req.body) {
     return next(
-      new CustomError(
-        HTTP_STATUS.BAD_REQUEST,
-        'Another admin with this email or phone number already exists'
-      )
+      new CustomError(HTTP_STATUS.BAD_REQUEST, 'Password cannot be updated from this route')
     );
   }
 
-  // Handle profile image replacement
+  // ✅ Check if email or phone_number are changed before duplicate check
+  const emailChanged = email && email !== admin.email;
+  const phoneChanged = phone_number && phone_number !== admin.phone_number;
+
+  if (emailChanged || phoneChanged) {
+    const duplicate = await Admin.findOne({
+      $or: [...(emailChanged ? [{ email }] : []), ...(phoneChanged ? [{ phone_number }] : [])],
+      _id: { $ne: id },
+    });
+
+    if (duplicate) {
+      return next(
+        new CustomError(
+          HTTP_STATUS.BAD_REQUEST,
+          'Another admin with this email or phone number already exists'
+        )
+      );
+    }
+  }
+
+  // ✅ Handle profile image update
   if (req.file) {
     if (admin.profile_image?.public_id) {
       await deleteFromS3(admin.profile_image.public_id);
     }
-    const uploaded = await uploadToS3(req.file, 'admin_profiles');
+    const fileKey = `admin_profiles/${Date.now()}-${req.file.originalname}`;
+    const uploaded = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
     admin.profile_image = {
-      public_id: uploaded?.Key || null,
-      url: uploaded?.Location || null,
+      public_id: fileKey,
+      url: uploaded?.url || null,
     };
   }
 
+  // ✅ Apply field updates if changed
   if (full_name) admin.full_name = full_name;
-  if (email) admin.email = email;
-  if (phone_number) admin.phone_number = phone_number;
+  if (emailChanged) admin.email = email;
+  if (phoneChanged) admin.phone_number = phone_number;
 
   await admin.save();
 
@@ -142,6 +158,8 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     admin,
   });
 });
+
+
 
 // Delete Admin
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
