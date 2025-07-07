@@ -8,7 +8,7 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Full name is required'],
       trim: true,
-      maxlength: [100, 'Full name must not exceed 100 characters'],
+      max_length: [100, 'Full name must not exceed 100 characters'],
     },
     email: {
       type: String,
