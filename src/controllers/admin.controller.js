@@ -35,15 +35,36 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
+import applyQueryOptions from '../utils/queryHelper.js';
+
 export const getAllAdmins = asyncWrapper(async (req, res) => {
-  const admins = await Admin.find({ role: 'admin' }).select('-password');
+  const baseQuery = Admin.find({ role: 'admin' }).select('-password');
+
+  const { results: admins, pagination } = await applyQueryOptions(
+    Admin,
+    baseQuery,
+    req.query,
+    ['full_name', 'email', 'phone_number'], // searchable fields
+    ['full_name', 'email', 'created_at']    // sortable fields
+  );
+
+  if (admins.length === 0) {
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'No admins found',
+      admins: [],
+      pagination,
+    });
+  }
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: admins.length > 0 ? 'Admins fetched successfully' : 'No admins found',
+    message: 'Admins fetched successfully',
     admins,
+    pagination,
   });
 });
+
 
 
 export const getAdminById = asyncWrapper(async (req, res, next) => {
