@@ -7,7 +7,7 @@ const departmentSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Department name is required'],
       trim: true,
-      maxlength: [100, 'Department name must not exceed 100 characters'],
+      max_length: [100, 'Department name must not exceed 100 characters'],
       unique: [true, 'Department name must be unique'],
     },
     email: {
@@ -21,24 +21,22 @@ const departmentSchema = new mongoose.Schema(
         message: 'Invalid email address',
       },
     },
-    profile_image: {
-      public_id: {
-        type: String,
-        required: true,
-      },
-      url: {
-        type: String,
-        required: true,
-      },
+    image_url: {
+      type: String,
+      required: true,
+    },
+    image_key: {
+      type: String,
+      required: true,
     },
   },
   {
     timestamps: {
-      createdAt: 'created_at', 
-      updatedAt: 'updated_at'
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
     },
     toJSON: {
-      virtuals: true,
+      virtual: true,
       transform: function (doc, ret) {
         ret.id = ret._id;
         delete ret._id;

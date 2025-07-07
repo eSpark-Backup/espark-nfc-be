@@ -1,5 +1,4 @@
 import express from 'express';
-import multer from 'multer';
 import {
   createEmployee,
   getEmployees,
@@ -9,6 +8,7 @@ import {
 } from '../controllers/employee.controller.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import verifyToken from '../middlewares/authMiddleware.js';
+import upload from '../middlewares/multer.js';
 import {
   validateCreateEmployee,
   validateUpdateEmployee,
@@ -18,9 +18,6 @@ import {
 const router = express.Router();
 
 router.use(verifyToken);
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
 
 router
   .route('/')

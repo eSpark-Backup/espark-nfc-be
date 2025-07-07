@@ -12,14 +12,16 @@ const envConfig = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
 
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: process.env.CLOUDINARY_API_KEY,
-    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  s3: {
+    accessKey: process.env.S3_ACCESS_KEY,
+    secretKey: process.env.S3_SECRET_KEY,
+    region: process.env.S3_REGION,
+    bucket: process.env.S3_BUCKET,
+    endpoint: process.env.S3_ENDPOINT, // optional: used if needed
   },
-  
+
   superAdmin: {
-  secret: process.env.SUPER_ADMIN_CREATION_SECRET,
+    secret: process.env.SUPER_ADMIN_CREATION_SECRET,
   },
 };
 

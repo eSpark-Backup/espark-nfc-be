@@ -2,7 +2,7 @@ import Employee from '../models/employee.model.js';
 import Department from '../models/department.model.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
-import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
+import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import applyQueryOptions from '../utils/queryHelper.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
 
@@ -40,7 +40,11 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const image = await uploadToCloudinary(req.file.buffer, 'employee_profiles');
+  const { url: imageUrl, key: imageKey } = await uploadToS3(
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype
+  );
 
   const employee = await Employee.create({
     name,
@@ -58,10 +62,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       instagram: instagram || '',
       youtube: youtube || '',
     },
-    profile_image: {
-      public_id: image.public_id,
-      url: image.secure_url,
-    },
+    image_url: imageUrl,
+    image_key: imageKey,
   });
 
   res.status(HTTP_STATUS.CREATED).json({ success: true, employee });
@@ -113,14 +115,7 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 // Update employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-  const {
-    email,
-    department_id,
-    facebook,
-    twitter,
-    instagram,
-    youtube,
-  } = req.body;
+  const { email, department_id, facebook, twitter, instagram, youtube } = req.body;
 
   const employee = await Employee.findById(id);
   if (!employee) {
@@ -138,9 +133,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   const isSameEmail = newEmail === employee.email;
   const isSameDept = newDeptId === employee.department_id.toString();
-  const isSameImage = req.file
-    ? false
-    : true;
+  const isSameImage = req.file ? false : true;
 
   const otherFieldsUnchanged = Object.entries(req.body).every(([key, value]) => {
     if (['email', 'facebook', 'twitter', 'instagram', 'youtube'].includes(key)) return true;
@@ -155,7 +148,6 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  // Check for duplicate email and assign only if changed
   if (email && email.toLowerCase() !== employee.email.toLowerCase()) {
     const duplicateEmail = await Employee.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
     if (duplicateEmail) {
@@ -164,15 +156,14 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     employee.email = email.toLowerCase();
   }
 
-  // Check if new department is valid
   if (department_id && department_id !== employee.department_id.toString()) {
     const department = await Department.findById(department_id);
     if (!department) {
       return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
     }
+    employee.department_id = department_id;
   }
 
-  // Update other fields (excluding email and social links)
   Object.entries(req.body).forEach(([key, value]) => {
     if (
       value !== undefined &&
@@ -182,20 +173,24 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     }
   });
 
-  // Update social links
   employee.social_links.facebook = facebook || '';
   employee.social_links.twitter = twitter || '';
   employee.social_links.instagram = instagram || '';
   employee.social_links.youtube = youtube || '';
 
-  // Update profile image if provided
   if (req.file) {
-    await deleteFromCloudinary(employee.profile_image.public_id);
-    const newImage = await uploadToCloudinary(req.file.buffer, 'employee_profiles');
-    employee.profile_image = {
-      public_id: newImage.public_id,
-      url: newImage.secure_url,
-    };
+    if (employee.image_key) {
+      await deleteFromS3(employee.image_key);
+    }
+
+    const { url: imageUrl, key: imageKey } = await uploadToS3(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+
+    employee.image_url = imageUrl;
+    employee.image_key = imageKey;
   }
 
   await employee.save();
@@ -207,8 +202,6 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-
 // Delete employee
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -218,7 +211,10 @@ export const deleteEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  await deleteFromCloudinary(employee.profile_image.public_id);
+  if (employee.image_key) {
+    await deleteFromS3(employee.image_key);
+  }
+
   await employee.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({

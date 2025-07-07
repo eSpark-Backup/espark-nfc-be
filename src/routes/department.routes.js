@@ -7,7 +7,7 @@ import {
   deleteDepartment,
 } from '../controllers/department.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
-import upload, { cloudinaryUpload } from '../middlewares/multer.js';
+import upload from '../middlewares/multer.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateDepartment,
@@ -22,7 +22,6 @@ router.use(verifyToken);
 router.post(
   '/',
   upload.single('profile_image'),
-  cloudinaryUpload('departments'),
   validateCreateDepartment,
   validateRequest,
   createDepartment
@@ -30,27 +29,16 @@ router.post(
 
 router.get('/', getAllDepartments);
 
-router.get(
-  '/:id',
-  validateDepartmentId,
-  validateRequest,
-  getDepartmentById
-);
+router.get('/:id', validateDepartmentId, validateRequest, getDepartmentById);
 
 router.patch(
   '/:id',
   upload.single('profile_image'),
-  cloudinaryUpload('departments'),
   validateUpdateDepartment,
   validateRequest,
   updateDepartment
 );
 
-router.delete(
-  '/:id',
-  validateDepartmentId,
-  validateRequest,
-  deleteDepartment
-);
+router.delete('/:id', validateDepartmentId, validateRequest, deleteDepartment);
 
 export default router;

@@ -2,17 +2,11 @@ import CompanyProfile from '../models/companyProfile.model.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
-import { deleteFromCloudinary } from '../utils/cloudinary.js';
+import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 
 export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
-  const {
-    company_name,
-    website_link,
-    established,
-    address,
-    button_name,
-    button_redirect_url,
-  } = req.body;
+  const { company_name, website_link, established, address, button_name, button_redirect_url } =
+    req.body;
 
   const profileImage = req.file;
 
@@ -25,6 +19,12 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Company profile already exists'));
   }
 
+  const { url: imageUrl, key: imageKey } = await uploadToS3(
+    profileImage.buffer,
+    profileImage.originalname,
+    profileImage.mimetype
+  );
+
   const companyProfile = await CompanyProfile.create({
     company_name,
     website_link,
@@ -32,10 +32,8 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     address,
     button_name,
     button_redirect_url,
-    profile_image: {
-      public_id: profileImage.public_id,
-      url: profileImage.secure_url,
-    },
+    image_url: imageUrl,
+    image_key: imageKey,
   });
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -59,14 +57,8 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
 });
 
 export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
-  const {
-    company_name,
-    website_link,
-    established,
-    address,
-    button_name,
-    button_redirect_url,
-  } = req.body;
+  const { company_name, website_link, established, address, button_name, button_redirect_url } =
+    req.body;
 
   const { id } = req.params;
   const profileImage = req.file;
@@ -81,10 +73,10 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const isSameEstablished = established ? companyProfile.established === established : true;
   const isSameAddress = address ? companyProfile.address === address : true;
   const isSameButtonName = button_name ? companyProfile.button_name === button_name : true;
-  const isSameButtonUrl = button_redirect_url ? companyProfile.button_redirect_url === button_redirect_url : true;
-  const isSameImage = profileImage
-    ? companyProfile.profile_image?.public_id === profileImage.public_id
+  const isSameButtonUrl = button_redirect_url
+    ? companyProfile.button_redirect_url === button_redirect_url
     : true;
+  const isSameImage = profileImage ? false : true;
 
   if (
     isSameName &&
@@ -104,11 +96,18 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
 
   // Update profile image only if a new one is provided
   if (profileImage) {
-    await deleteFromCloudinary(companyProfile.profile_image.public_id);
-    companyProfile.profile_image = {
-      public_id: profileImage.public_id,
-      url: profileImage.secure_url,
-    };
+    if (companyProfile.image_key) {
+      await deleteFromS3(companyProfile.image_key);
+    }
+
+    const { url: imageUrl, key: imageKey } = await uploadToS3(
+      profileImage.buffer,
+      profileImage.originalname,
+      profileImage.mimetype
+    );
+
+    companyProfile.image_url = imageUrl;
+    companyProfile.image_key = imageKey;
   }
 
   // Safely assign only present fields
@@ -128,8 +127,6 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
@@ -138,7 +135,10 @@ export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  await deleteFromCloudinary(companyProfile.profile_image.public_id);
+  if (companyProfile.image_key) {
+    await deleteFromS3(companyProfile.image_key);
+  }
+
   await companyProfile.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({

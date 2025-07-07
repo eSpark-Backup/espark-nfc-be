@@ -41,11 +41,21 @@ const adminSchema = new mongoose.Schema(
       type: String,
       enum: ['super-admin', 'admin'],
       default: 'admin',
-      immutable: true, // prevents changes after creation
+      immutable: true,
     },
     is_active: {
       type: Boolean,
       default: true,
+    },
+    profile_image: {
+      public_id: {
+        type: String,
+        default: null,
+      },
+      url: {
+        type: String,
+        default: null,
+      },
     },
   },
   {

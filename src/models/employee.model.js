@@ -7,7 +7,7 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Employee name is required'],
       trim: true,
-      maxlength: [100, 'Employee name must not exceed 100 characters'],
+      max_length: [100, 'Employee name must not exceed 100 characters'],
     },
     email: {
       type: String,
@@ -93,15 +93,13 @@ const employeeSchema = new mongoose.Schema(
       default: '',
       required: [true, 'About me is required'],
     },
-    profile_image: {
-      public_id: {
-        type: String,
-        required: true,
-      },
-      url: {
-        type: String,
-        required: true,
-      },
+    image_url: {
+      type: String,
+      required: true,
+    },
+    image_key: {
+      type: String,
+      required: true,
     },
     department_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -115,7 +113,7 @@ const employeeSchema = new mongoose.Schema(
       updatedAt: 'updated_at',
     },
     toJSON: {
-      virtuals: true,
+      virtual: true,
       transform: function (doc, ret) {
         ret.id = ret._id;
         delete ret._id;

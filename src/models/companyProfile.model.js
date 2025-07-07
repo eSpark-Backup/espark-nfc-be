@@ -7,7 +7,7 @@ const companyProfileSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Company name is required'],
       trim: true,
-      maxlength: [150, 'Company name must not exceed 150 characters'],
+      max_length: [150, 'Company name must not exceed 150 characters'],
     },
     website_link: {
       type: String,
@@ -20,7 +20,7 @@ const companyProfileSchema = new mongoose.Schema(
     established: {
       type: String,
       trim: true,
-      maxlength: [30, 'Established field must not exceed 30 characters'],
+      max_length: [30, 'Established field must not exceed 30 characters'],
     },
     address: {
       type: String,
@@ -30,7 +30,7 @@ const companyProfileSchema = new mongoose.Schema(
     button_name: {
       type: String,
       trim: true,
-      maxlength: [50, 'Button name must not exceed 50 characters'],
+      max_length: [50, 'Button name must not exceed 50 characters'],
     },
     button_redirect_url: {
       type: String,
@@ -40,15 +40,13 @@ const companyProfileSchema = new mongoose.Schema(
         message: 'Invalid redirect URL',
       },
     },
-    profile_image: {
-      public_id: {
-        type: String,
-        required: true,
-      },
-      url: {
-        type: String,
-        required: true,
-      },
+    image_url: {
+      type: String,
+      required: true,
+    },
+    image_key: {
+      type: String,
+      required: true,
     },
   },
   {
@@ -57,7 +55,7 @@ const companyProfileSchema = new mongoose.Schema(
       updatedAt: 'updated_at',
     },
     toJSON: {
-      virtuals: true,
+      virtual: true,
       transform: function (doc, ret) {
         ret.id = ret._id;
         delete ret._id;

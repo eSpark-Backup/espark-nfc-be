@@ -2,11 +2,13 @@ import Admin from '../models/admin.model.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
+import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
+import applyQueryOptions from '../utils/queryHelper.js';
 
+// Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
   const { full_name, email, phone_number, password } = req.body;
 
-  // Check for existing admin
   const existing = await Admin.findOne({
     $or: [{ email }, { phone_number }],
   });
@@ -20,12 +22,23 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     );
   }
 
+  let profile_image = { public_id: null, url: null };
+
+  if (req.file) {
+    const uploaded = await uploadToS3(req.file, 'admin_profiles');
+    profile_image = {
+      public_id: uploaded?.Key || null,
+      url: uploaded?.Location || null,
+    };
+  }
+
   const admin = await Admin.create({
     full_name,
     email,
     phone_number,
     password,
     role: 'admin',
+    profile_image,
   });
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -35,8 +48,7 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-import applyQueryOptions from '../utils/queryHelper.js';
-
+// Get All Admins
 export const getAllAdmins = asyncWrapper(async (req, res) => {
   const baseQuery = Admin.find({ role: 'admin' }).select('-password');
 
@@ -44,8 +56,8 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
     Admin,
     baseQuery,
     req.query,
-    ['full_name', 'email', 'phone_number'], // searchable fields
-    ['full_name', 'email', 'created_at']    // sortable fields
+    ['full_name', 'email', 'phone_number'],
+    ['full_name', 'email', 'created_at']
   );
 
   if (admins.length === 0) {
@@ -65,8 +77,7 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
   });
 });
 
-
-
+// Get Admin by ID
 export const getAdminById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
@@ -83,6 +94,7 @@ export const getAdminById = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Update Admin
 export const updateAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { full_name, email, phone_number } = req.body;
@@ -92,7 +104,6 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  // Check for duplicate email or phone (excluding current record)
   const duplicate = await Admin.findOne({
     $or: [{ email }, { phone_number }],
     _id: { $ne: id },
@@ -107,7 +118,18 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  // Only update if value is provided
+  // Handle profile image replacement
+  if (req.file) {
+    if (admin.profile_image?.public_id) {
+      await deleteFromS3(admin.profile_image.public_id);
+    }
+    const uploaded = await uploadToS3(req.file, 'admin_profiles');
+    admin.profile_image = {
+      public_id: uploaded?.Key || null,
+      url: uploaded?.Location || null,
+    };
+  }
+
   if (full_name) admin.full_name = full_name;
   if (email) admin.email = email;
   if (phone_number) admin.phone_number = phone_number;
@@ -121,21 +143,23 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Delete Admin
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
   if (req.user.id === id) {
     return next(
-      new CustomError(
-        HTTP_STATUS.BAD_REQUEST,
-        'You cannot delete your own admin account'
-      )
+      new CustomError(HTTP_STATUS.BAD_REQUEST, 'You cannot delete your own admin account')
     );
   }
 
   const admin = await Admin.findById(id);
   if (!admin || admin.role !== 'admin') {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
+  }
+
+  if (admin.profile_image?.public_id) {
+    await deleteFromS3(admin.profile_image.public_id);
   }
 
   await admin.deleteOne();
