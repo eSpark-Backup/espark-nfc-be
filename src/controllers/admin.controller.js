@@ -112,13 +112,21 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     );
   }
 
+  // ✅ Normalize and trim inputs
+  const trimmedName = full_name?.trim();
+  const normalizedEmail = email?.trim().toLowerCase();
+  const normalizedPhone = phone_number?.trim();
+
   // ✅ Check if email or phone_number are changed before duplicate check
-  const emailChanged = email && email !== admin.email;
-  const phoneChanged = phone_number && phone_number !== admin.phone_number;
+  const emailChanged = normalizedEmail && normalizedEmail !== admin.email;
+  const phoneChanged = normalizedPhone && normalizedPhone !== admin.phone_number;
 
   if (emailChanged || phoneChanged) {
     const duplicate = await Admin.findOne({
-      $or: [...(emailChanged ? [{ email }] : []), ...(phoneChanged ? [{ phone_number }] : [])],
+      $or: [
+        ...(emailChanged ? [{ email: normalizedEmail }] : []),
+        ...(phoneChanged ? [{ phone_number: normalizedPhone }] : []),
+      ],
       _id: { $ne: id },
     });
 
@@ -133,22 +141,48 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   }
 
   // ✅ Handle profile image update
+  let imageUpdated = false;
   if (req.file) {
     if (admin.profile_image?.public_id) {
       await deleteFromS3(admin.profile_image.public_id);
     }
+
     const fileKey = `admin_profiles/${Date.now()}-${req.file.originalname}`;
     const uploaded = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
+
     admin.profile_image = {
       public_id: fileKey,
-      url: uploaded?.url || null,
+      url: uploaded?.url || admin.profile_image?.url || null,
     };
+    imageUpdated = true;
   }
 
-  // ✅ Apply field updates if changed
-  if (full_name) admin.full_name = full_name;
-  if (emailChanged) admin.email = email;
-  if (phoneChanged) admin.phone_number = phone_number;
+  // ✅ Track field changes and apply them
+  let updated = false;
+
+  if (trimmedName && trimmedName !== admin.full_name) {
+    admin.full_name = trimmedName;
+    updated = true;
+  }
+
+  if (emailChanged) {
+    admin.email = normalizedEmail;
+    updated = true;
+  }
+
+  if (phoneChanged) {
+    admin.phone_number = normalizedPhone;
+    updated = true;
+  }
+
+  // ✅ Early return if nothing has changed
+  if (!updated && !imageUpdated) {
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Admin updated successfully',
+      admin,
+    });
+  }
 
   await admin.save();
 
@@ -158,6 +192,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     admin,
   });
 });
+
 
 
 

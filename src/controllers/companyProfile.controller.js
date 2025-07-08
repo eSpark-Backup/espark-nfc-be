@@ -65,50 +65,59 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  const isSameName = company_name ? companyProfile.company_name === company_name : true;
-  const isSameWebsite = website_link ? companyProfile.website_link === website_link : true;
-  const isSameEstablished = established ? companyProfile.established === established : true;
-  const isSameAddress = address ? companyProfile.address === address : true;
-  const isSameButtonName = button_name ? companyProfile.button_name === button_name : true;
-  const isSameButtonUrl = button_redirect_url
-    ? companyProfile.button_redirect_url === button_redirect_url
-    : true;
-  const isSameImage = profileImage ? false : true;
+  // ✅ Trim and normalize all input fields
+  const trimmedName = company_name?.trim();
+  const trimmedWebsite = website_link?.trim();
+  const trimmedEstablished = established?.trim();
+  const trimmedAddress = address?.trim();
+  const trimmedButtonName = button_name?.trim();
+  const trimmedButtonUrl = button_redirect_url?.trim();
+
+  // ✅ Compare fields for early return
+  const isSameName = trimmedName === companyProfile.company_name;
+  const isSameWebsite = trimmedWebsite === companyProfile.website_link;
+  const isSameEstablished = trimmedEstablished === companyProfile.established;
+  const isSameAddress = trimmedAddress === companyProfile.address;
+  const isSameButtonName = trimmedButtonName === companyProfile.button_name;
+  const isSameButtonUrl = trimmedButtonUrl === companyProfile.button_redirect_url;
+  const isSameImage = !profileImage;
 
   if (
-    isSameName &&
-    isSameWebsite &&
-    isSameEstablished &&
-    isSameAddress &&
-    isSameButtonName &&
-    isSameButtonUrl &&
+    (trimmedName ? isSameName : true) &&
+    (trimmedWebsite ? isSameWebsite : true) &&
+    (trimmedEstablished ? isSameEstablished : true) &&
+    (trimmedAddress ? isSameAddress : true) &&
+    (trimmedButtonName ? isSameButtonName : true) &&
+    (trimmedButtonUrl ? isSameButtonUrl : true) &&
     isSameImage
   ) {
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Company profile updated successfully',
+      message: 'Nothing to update',
       company_profile: companyProfile,
     });
   }
 
+  // ✅ Handle image upload and replace
   if (profileImage) {
     if (companyProfile.image_key) {
       await deleteFromS3(companyProfile.image_key);
     }
 
-    const fileKey = `${Date.now()}-${profileImage.originalname}`;
+    const fileKey = `company_profiles/${Date.now()}-${profileImage.originalname}`;
     const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
 
-    companyProfile.image_url = uploadResult.url;
+    companyProfile.image_url = uploadResult?.url || companyProfile.image_url;
     companyProfile.image_key = fileKey;
   }
 
-  if (company_name) companyProfile.company_name = company_name;
-  if (website_link) companyProfile.website_link = website_link;
-  if (established) companyProfile.established = established;
-  if (address) companyProfile.address = address;
-  if (button_name) companyProfile.button_name = button_name;
-  if (button_redirect_url) companyProfile.button_redirect_url = button_redirect_url;
+  // ✅ Apply only changed values
+  if (trimmedName && !isSameName) companyProfile.company_name = trimmedName;
+  if (trimmedWebsite && !isSameWebsite) companyProfile.website_link = trimmedWebsite;
+  if (trimmedEstablished && !isSameEstablished) companyProfile.established = trimmedEstablished;
+  if (trimmedAddress && !isSameAddress) companyProfile.address = trimmedAddress;
+  if (trimmedButtonName && !isSameButtonName) companyProfile.button_name = trimmedButtonName;
+  if (trimmedButtonUrl && !isSameButtonUrl) companyProfile.button_redirect_url = trimmedButtonUrl;
 
   await companyProfile.save();
 
@@ -118,6 +127,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     company_profile: companyProfile,
   });
 });
+
 
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;

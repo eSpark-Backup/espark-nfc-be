@@ -136,21 +136,25 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const normalizedName = name ? normalize(name) : department.name;
-  const normalizedEmail = email ? email.toLowerCase() : department.email;
+  // ✅ Normalize and trim inputs
+  const trimmedName = name?.trim();
+  const normalizedName = trimmedName ? normalize(trimmedName) : department.name;
+  const normalizedEmail = email?.trim().toLowerCase() || department.email;
 
+  // ✅ Check for changes
   const isSameName = department.name === normalizedName;
   const isSameEmail = department.email === normalizedEmail;
-  const isSameImage = false;
+  const isSameImage = false; // Always updating image, so treated as changed
 
-  if (isSameName && isSameEmail && isSameImage) {
+  if (isSameName && isSameEmail && !profileImage) {
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Department updated successfully',
+      message: 'Nothing to update',
       department,
     });
   }
 
+  // ✅ Duplicate check only if name or email changed
   if (!isSameName || !isSameEmail) {
     const duplicate = await Department.findOne({
       $or: [
@@ -170,18 +174,25 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     }
   }
 
+  // ✅ Handle image update
   if (department.image_key) {
     await deleteFromS3(department.image_key);
   }
 
-  const fileKey = `${Date.now()}-${profileImage.originalname}`;
+  const fileKey = `department_profiles/${Date.now()}-${profileImage.originalname}`;
   const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
 
-  department.image_url = uploadResult.url;
+  department.image_url = uploadResult?.url || department.image_url;
   department.image_key = fileKey;
 
-  if (name) department.name = name;
-  if (email) department.email = email;
+  // ✅ Apply field updates if changed
+  if (trimmedName && trimmedName !== department.name) {
+    department.name = trimmedName;
+  }
+
+  if (normalizedEmail !== department.email) {
+    department.email = normalizedEmail;
+  }
 
   await department.save();
 
@@ -191,6 +202,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     department,
   });
 });
+
 
 export const deleteDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;

@@ -112,47 +112,58 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 // Update employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-  const { email, department_id, facebook, twitter, instagram, youtube } = req.body;
+  const { email, department_id, facebook, twitter, instagram, youtube, ...otherFields } = req.body;
 
   const employee = await Employee.findById(id);
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  const newEmail = email?.toLowerCase() || employee.email;
-  const newDeptId = department_id || employee.department_id.toString();
+  // ✅ Normalize and trim input
+  const trimmedEmail = email?.trim().toLowerCase();
+  const trimmedDeptId = department_id?.trim() || employee.department_id.toString();
+
+  const normalizedSocial = {
+    facebook: facebook?.trim() || '',
+    twitter: twitter?.trim() || '',
+    instagram: instagram?.trim() || '',
+    youtube: youtube?.trim() || '',
+  };
+
+  // ✅ Compare current state
+  const isSameEmail = trimmedEmail === employee.email;
+  const isSameDept = trimmedDeptId === employee.department_id.toString();
+  const isSameImage = !req.file;
 
   const socialUnchanged =
-    (employee.social_links.facebook || '') === (facebook || '') &&
-    (employee.social_links.twitter || '') === (twitter || '') &&
-    (employee.social_links.instagram || '') === (instagram || '') &&
-    (employee.social_links.youtube || '') === (youtube || '');
+    (employee.social_links.facebook || '') === normalizedSocial.facebook &&
+    (employee.social_links.twitter || '') === normalizedSocial.twitter &&
+    (employee.social_links.instagram || '') === normalizedSocial.instagram &&
+    (employee.social_links.youtube || '') === normalizedSocial.youtube;
 
-  const isSameEmail = newEmail === employee.email;
-  const isSameDept = newDeptId === employee.department_id.toString();
-  const isSameImage = req.file ? false : true;
-
-  const otherFieldsUnchanged = Object.entries(req.body).every(([key, value]) => {
-    if (['email', 'facebook', 'twitter', 'instagram', 'youtube'].includes(key)) return true;
+  const otherFieldsUnchanged = Object.entries(otherFields).every(([key, value]) => {
     return employee[key]?.toString() === value?.toString();
   });
 
+  // ✅ Early return if nothing has changed
   if (isSameEmail && isSameDept && isSameImage && socialUnchanged && otherFieldsUnchanged) {
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Employee updated successfully',
+      message: 'Nothing to update',
       employee,
     });
   }
 
-  if (email && email.toLowerCase() !== employee.email.toLowerCase()) {
-    const duplicateEmail = await Employee.findOne({ email: email.toLowerCase(), _id: { $ne: id } });
-    if (duplicateEmail) {
+  // ✅ Check for email duplication
+  if (trimmedEmail && trimmedEmail !== employee.email) {
+    const duplicate = await Employee.findOne({ email: trimmedEmail, _id: { $ne: id } });
+    if (duplicate) {
       return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email already exists'));
     }
-    employee.email = email.toLowerCase();
+    employee.email = trimmedEmail;
   }
 
+  // ✅ Validate and update department
   if (department_id && department_id !== employee.department_id.toString()) {
     const department = await Department.findById(department_id);
     if (!department) {
@@ -161,29 +172,29 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     employee.department_id = department_id;
   }
 
-  Object.entries(req.body).forEach(([key, value]) => {
-    if (
-      value !== undefined &&
-      !['email', 'facebook', 'twitter', 'instagram', 'youtube'].includes(key)
-    ) {
+  // ✅ Update other fields
+  Object.entries(otherFields).forEach(([key, value]) => {
+    if (value !== undefined) {
       employee[key] = value;
     }
   });
 
-  employee.social_links.facebook = facebook || '';
-  employee.social_links.twitter = twitter || '';
-  employee.social_links.instagram = instagram || '';
-  employee.social_links.youtube = youtube || '';
+  // ✅ Update social links
+  employee.social_links.facebook = normalizedSocial.facebook;
+  employee.social_links.twitter = normalizedSocial.twitter;
+  employee.social_links.instagram = normalizedSocial.instagram;
+  employee.social_links.youtube = normalizedSocial.youtube;
 
+  // ✅ Handle image update
   if (req.file) {
     if (employee.image_key) {
       await deleteFromS3(employee.image_key);
     }
 
-    const fileKey = `${Date.now()}-${req.file.originalname}`;
+    const fileKey = `employee_profiles/${Date.now()}-${req.file.originalname}`;
     const uploadResult = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
 
-    employee.image_url = uploadResult.url;
+    employee.image_url = uploadResult?.url || employee.image_url;
     employee.image_key = fileKey;
   }
 
@@ -195,6 +206,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     employee,
   });
 });
+
 
 // Delete employee
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
