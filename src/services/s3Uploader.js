@@ -27,7 +27,6 @@ export const uploadToS3 = async (fileBuffer, originalName, mimeType) => {
   };
 
   const uploaded = await s3.upload(params).promise();
-  console.log('✅ Full Upload Response:', uploaded);
 
   return {
     key: uploaded.Key,
