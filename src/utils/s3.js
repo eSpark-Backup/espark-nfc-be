@@ -10,4 +10,14 @@ const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
+export const generatePresignedUrl = async (key) => {
+  const params = {
+    Bucket: envConfig.s3.bucket,
+    Key: key,
+    Expires: 60 * 60, // valid for 1 hour
+  };
+
+  return s3.getSignedUrlPromise('getObject', params);
+};
+
 export default s3;

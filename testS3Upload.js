@@ -1,34 +1,20 @@
 import AWS from 'aws-sdk';
-import fs from 'fs';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
+import envConfig from './src/config/envConfig.js'; // Adjust the path as necessary
 const s3 = new AWS.S3({
-  region: process.env.S3_REGION,
-  endpoint: process.env.S3_ENDPOINT,
-  accessKeyId: process.env.S3_ACCESS_KEY,
-  secretAccessKey: process.env.S3_SECRET_KEY,
-  signatureVersion: 'v4',
-  s3ForcePathStyle: true,
+  region: envConfig.s3.region,
+  accessKeyId: envConfig.s3.accessKey,
+  secretAccessKey: envConfig.s3.secretKey,
 });
 
-const testUpload = async () => {
-  const buffer = fs.readFileSync('./iphone.jpg'); // place a test.jpg in root
-
-  const params = {
-    Bucket: process.env.S3_BUCKET,
-    Key: `test-${Date.now()}.jpg`,
-    Body: buffer,
-    ContentType: 'image/jpeg'
-  };
-
-  try {
-    const result = await s3.upload(params).promise();
-    console.log('✅ Upload successful:', result.Location);
-  } catch (err) {
-    console.error('❌ Upload failed:', err);
+s3.upload(
+  {
+    Bucket: envConfig.s3.bucket,
+    Key: 'test.txt',
+    Body: 'Hello world!',
+    ContentType: 'text/plain',
+  },
+  (err, data) => {
+    if (err) return console.error('❌ Upload failed:', err);
+    console.log('✅ Upload success:', data);
   }
-};
-
-testUpload();
+);

@@ -4,6 +4,7 @@ import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
 import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import applyQueryOptions from '../utils/queryHelper.js';
+import { generatePresignedUrl } from '../utils/s3.js';
 
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
@@ -25,10 +26,9 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   let profile_image = { public_id: null, url: null };
 
   if (req.file) {
-    const fileKey = `admin_profiles/${Date.now()}-${req.file.originalname}`;
-    const uploaded = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
+    const uploaded = await uploadToS3(req.file.buffer, req.file.originalname, req.file.mimetype);
     profile_image = {
-      public_id: fileKey,
+      public_id: uploaded?.key || null,
       url: uploaded?.url || null,
     };
   }
@@ -41,6 +41,10 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     role: 'admin',
     profile_image,
   });
+
+  if (admin.profile_image?.public_id) {
+    admin.profile_image.url = await generatePresignedUrl(admin.profile_image.public_id);
+  }
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -70,6 +74,12 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
     });
   }
 
+  for (const admin of admins) {
+    if (admin.profile_image?.public_id) {
+      admin.profile_image.url = await generatePresignedUrl(admin.profile_image.public_id);
+    }
+  }
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Admins fetched successfully',
@@ -86,6 +96,10 @@ export const getAdminById = asyncWrapper(async (req, res, next) => {
 
   if (!admin || admin.role !== 'admin') {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
+  }
+
+  if (admin.profile_image?.public_id) {
+    admin.profile_image.url = await generatePresignedUrl(admin.profile_image.public_id);
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -105,19 +119,16 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  // ✅ Prevent password update via this route
   if ('password' in req.body) {
     return next(
       new CustomError(HTTP_STATUS.BAD_REQUEST, 'Password cannot be updated from this route')
     );
   }
 
-  // ✅ Normalize and trim inputs
   const trimmedName = full_name?.trim();
   const normalizedEmail = email?.trim().toLowerCase();
   const normalizedPhone = phone_number?.trim();
 
-  // ✅ Check if email or phone_number are changed before duplicate check
   const emailChanged = normalizedEmail && normalizedEmail !== admin.email;
   const phoneChanged = normalizedPhone && normalizedPhone !== admin.phone_number;
 
@@ -140,24 +151,21 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  // ✅ Handle profile image update
   let imageUpdated = false;
   if (req.file) {
     if (admin.profile_image?.public_id) {
       await deleteFromS3(admin.profile_image.public_id);
     }
 
-    const fileKey = `admin_profiles/${Date.now()}-${req.file.originalname}`;
-    const uploaded = await uploadToS3(req.file.buffer, fileKey, req.file.mimetype);
+    const uploaded = await uploadToS3(req.file.buffer, req.file.originalname, req.file.mimetype);
 
     admin.profile_image = {
-      public_id: fileKey,
+      public_id: uploaded?.key || admin.profile_image?.public_id,
       url: uploaded?.url || admin.profile_image?.url || null,
     };
     imageUpdated = true;
   }
 
-  // ✅ Track field changes and apply them
   let updated = false;
 
   if (trimmedName && trimmedName !== admin.full_name) {
@@ -175,8 +183,11 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  // ✅ Early return if nothing has changed
   if (!updated && !imageUpdated) {
+    if (admin.profile_image?.public_id) {
+      admin.profile_image.url = await generatePresignedUrl(admin.profile_image.public_id);
+    }
+
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Admin updated successfully',
@@ -186,6 +197,10 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
 
   await admin.save();
 
+  if (admin.profile_image?.public_id) {
+    admin.profile_image.url = await generatePresignedUrl(admin.profile_image.public_id);
+  }
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Admin updated successfully',
@@ -193,14 +208,11 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-
-
 // Delete Admin
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  if (req.user.id === id) {
+  if (req.admin.id === id) {
     return next(
       new CustomError(HTTP_STATUS.BAD_REQUEST, 'You cannot delete your own admin account')
     );
@@ -222,3 +234,4 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
     message: 'Admin deleted successfully',
   });
 });
+

@@ -10,34 +10,34 @@ const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
-const BUCKET = envConfig.s3.bucket;
-
 export const uploadToS3 = async (fileBuffer, originalName, mimeType) => {
-    const uniqueFileName = `${Date.now()}-${originalName}`;
+  const timestamp = Date.now();
+  const fileKey = `${timestamp}-${originalName}`; // ✅ Consistent, clean key
 
-    // Defensive check: ensure fileBuffer is a Buffer
-    if (!Buffer.isBuffer(fileBuffer)) {
-      throw new Error('Provided fileBuffer is not a valid Buffer.');
-    }
+  // Defensive check
+  if (!Buffer.isBuffer(fileBuffer)) {
+    throw new Error('Provided fileBuffer is not a valid Buffer.');
+  }
 
-    const params = {
-      Bucket: BUCKET,
-      Key: uniqueFileName,
-      Body: fileBuffer, // must be a Buffer
-      ContentType: mimeType,
-    };
+  const params = {
+    Bucket: envConfig.s3.bucket,
+    Key: fileKey,
+    Body: fileBuffer,
+    ContentType: mimeType,
+  };
 
-    const uploaded = await s3.upload(params).promise();
+  const uploaded = await s3.upload(params).promise();
+  console.log('✅ Full Upload Response:', uploaded);
 
-    return {
-      key: uploaded.Key,
-      url: uploaded.Location,
-    };
+  return {
+    key: uploaded.Key,
+    url: uploaded.Location,
+  };
 };
 
 export const deleteFromS3 = async (key) => {
   const params = {
-    Bucket: BUCKET,
+    Bucket: envConfig.s3.bucket,
     Key: key,
   };
 

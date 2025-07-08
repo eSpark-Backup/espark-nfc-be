@@ -5,6 +5,7 @@ import HTTP_STATUS from '../constants/httpStatus.js';
 import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import applyQueryOptions from '../utils/queryHelper.js';
 import Employee from '../models/employee.model.js';
+import { generatePresignedUrl } from '../utils/s3.js';
 
 const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
@@ -32,19 +33,22 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  const fileKey = `${Date.now()}-${profileImage.originalname}`;
-  console.log('🧪 File Buffer Check:', {
-    type: typeof req.file.buffer,
-    isBuffer: Buffer.isBuffer(req.file.buffer),
-  });
-  const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
+  const uploadResult = await uploadToS3(
+    profileImage.buffer,
+    profileImage.originalname,
+    profileImage.mimetype
+  );
 
   const department = await Department.create({
     name,
     email,
-    image_url: uploadResult.url,
-    image_key: fileKey,
+    image_url: uploadResult?.url || null,
+    image_key: uploadResult?.key || null,
   });
+
+  if (department.image_key) {
+    department.image_url = await generatePresignedUrl(department.image_key);
+  }
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -57,7 +61,6 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   const includeEmployees = req.query.include_employees === 'true';
 
   let baseQuery = Department.find();
-
   baseQuery = baseQuery.populate('employee_count');
 
   if (includeEmployees) {
@@ -85,6 +88,12 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
       departments: [],
       pagination,
     });
+  }
+
+  for (const dept of departments) {
+    if (dept.image_key) {
+      dept.image_url = await generatePresignedUrl(dept.image_key);
+    }
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -116,6 +125,10 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
+  if (department.image_key) {
+    department.image_url = await generatePresignedUrl(department.image_key);
+  }
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     department,
@@ -136,17 +149,18 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  // ✅ Normalize and trim inputs
   const trimmedName = name?.trim();
   const normalizedName = trimmedName ? normalize(trimmedName) : department.name;
   const normalizedEmail = email?.trim().toLowerCase() || department.email;
 
-  // ✅ Check for changes
   const isSameName = department.name === normalizedName;
   const isSameEmail = department.email === normalizedEmail;
-  const isSameImage = false; // Always updating image, so treated as changed
 
   if (isSameName && isSameEmail && !profileImage) {
+    if (department.image_key) {
+      department.image_url = await generatePresignedUrl(department.image_key);
+    }
+
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Nothing to update',
@@ -154,7 +168,6 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  // ✅ Duplicate check only if name or email changed
   if (!isSameName || !isSameEmail) {
     const duplicate = await Department.findOne({
       $or: [
@@ -174,18 +187,19 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  // ✅ Handle image update
   if (department.image_key) {
     await deleteFromS3(department.image_key);
   }
 
-  const fileKey = `department_profiles/${Date.now()}-${profileImage.originalname}`;
-  const uploadResult = await uploadToS3(profileImage.buffer, fileKey, profileImage.mimetype);
+  const uploadResult = await uploadToS3(
+    profileImage.buffer,
+    profileImage.originalname,
+    profileImage.mimetype
+  );
 
   department.image_url = uploadResult?.url || department.image_url;
-  department.image_key = fileKey;
+  department.image_key = uploadResult?.key || department.image_key;
 
-  // ✅ Apply field updates if changed
   if (trimmedName && trimmedName !== department.name) {
     department.name = trimmedName;
   }
@@ -196,13 +210,16 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
 
   await department.save();
 
+  if (department.image_key) {
+    department.image_url = await generatePresignedUrl(department.image_key);
+  }
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Department updated successfully',
     department,
   });
 });
-
 
 export const deleteDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
