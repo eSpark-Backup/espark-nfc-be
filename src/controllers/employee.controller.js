@@ -6,6 +6,7 @@ import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import applyQueryOptions from '../utils/queryHelper.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
 import { generatePresignedUrl } from '../utils/s3.js';
+import { processImage } from '../utils/imageProcessor.js';
 
 // Create employee
 export const createEmployee = asyncWrapper(async (req, res, next) => {
@@ -41,9 +42,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const uploadResult = await uploadToS3(req.file.buffer, req.file.originalname, req.file.mimetype);
-
-  const employee = await Employee.create({
+  const newEmployee = new Employee({
     name,
     email: normalizedEmail,
     phone_number,
@@ -59,15 +58,27 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       instagram: instagram || '',
       youtube: youtube || '',
     },
-    image_url: uploadResult.url,
-    image_key: uploadResult.key,
   });
 
-  if (employee.image_key) {
-    employee.image_url = await generatePresignedUrl(employee.image_key);
+  const optimizedBuffer = await processImage(req.file.buffer);
+  const filename = `employee-${newEmployee._id}.webp`;
+
+  const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
+
+  newEmployee.profile_image = {
+    image_key: uploadResult?.key || null,
+    image_url: uploadResult?.url || null,
+  };
+
+  await newEmployee.save();
+
+  if (newEmployee.profile_image?.image_key) {
+    newEmployee.profile_image.image_url = await generatePresignedUrl(
+      newEmployee.profile_image.image_key
+    );
   }
 
-  res.status(HTTP_STATUS.CREATED).json({ success: true, employee });
+  res.status(HTTP_STATUS.CREATED).json({ success: true, employee: newEmployee });
 });
 
 // Get all employees (with pagination/search/sort)
@@ -92,8 +103,8 @@ export const getEmployees = asyncWrapper(async (req, res) => {
   }
 
   for (const emp of employees) {
-    if (emp.image_key) {
-      emp.image_url = await generatePresignedUrl(emp.image_key);
+    if (emp.profile_image?.image_key) {
+      emp.profile_image.image_url = await generatePresignedUrl(emp.profile_image.image_key);
     }
   }
 
@@ -113,8 +124,8 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  if (employee.image_key) {
-    employee.image_url = await generatePresignedUrl(employee.image_key);
+  if (employee.profile_image?.image_key) {
+    employee.profile_image.image_url = await generatePresignedUrl(employee.profile_image.image_key);
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -145,8 +156,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   const isSameEmail = trimmedEmail === employee.email;
   const isSameDept = trimmedDeptId === employee.department_id.toString();
-  const isSameImage = !req.file;
-
+  const isSameImage = !req.file && !('profile_image' in req.body);
   const socialUnchanged =
     (employee.social_links.facebook || '') === normalizedSocial.facebook &&
     (employee.social_links.twitter || '') === normalizedSocial.twitter &&
@@ -158,8 +168,10 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   });
 
   if (isSameEmail && isSameDept && isSameImage && socialUnchanged && otherFieldsUnchanged) {
-    if (employee.image_key) {
-      employee.image_url = await generatePresignedUrl(employee.image_key);
+    if (employee.profile_image?.image_key) {
+      employee.profile_image.image_url = await generatePresignedUrl(
+        employee.profile_image.image_key
+      );
     }
 
     return res.status(HTTP_STATUS.OK).json({
@@ -196,25 +208,40 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   employee.social_links.instagram = normalizedSocial.instagram;
   employee.social_links.youtube = normalizedSocial.youtube;
 
+  // ✅ Image update
   if (req.file) {
-    if (employee.image_key) {
-      await deleteFromS3(employee.image_key);
+    if (employee.profile_image?.image_key) {
+      await deleteFromS3(employee.profile_image.image_key);
     }
 
-    const uploadResult = await uploadToS3(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype
-    );
+    const optimizedBuffer = await processImage(req.file.buffer);
+    const filename = `employee-${employee._id}.webp`;
 
-    employee.image_url = uploadResult?.url || employee.image_url;
-    employee.image_key = uploadResult?.key || employee.image_key;
+    const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
+
+    employee.profile_image = {
+      image_key: uploadResult?.key || null,
+      image_url: uploadResult?.url || null,
+    };
+  }
+
+  // ✅ Image removal
+  else if (
+    !req.file &&
+    'profile_image' in req.body &&
+    (!req.body.profile_image || req.body.profile_image === 'null')
+  ) {
+    if (employee.profile_image?.image_key) {
+      await deleteFromS3(employee.profile_image.image_key);
+    }
+
+    employee.profile_image = { image_key: null, image_url: null };
   }
 
   await employee.save();
 
-  if (employee.image_key) {
-    employee.image_url = await generatePresignedUrl(employee.image_key);
+  if (employee.profile_image?.image_key) {
+    employee.profile_image.image_url = await generatePresignedUrl(employee.profile_image.image_key);
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -233,8 +260,8 @@ export const deleteEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  if (employee.image_key) {
-    await deleteFromS3(employee.image_key);
+  if (employee.profile_image?.image_key) {
+    await deleteFromS3(employee.profile_image.image_key);
   }
 
   await employee.deleteOne();

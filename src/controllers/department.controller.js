@@ -6,6 +6,7 @@ import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import applyQueryOptions from '../utils/queryHelper.js';
 import Employee from '../models/employee.model.js';
 import { generatePresignedUrl } from '../utils/s3.js';
+import { processImage } from '../utils/imageProcessor.js';
 
 const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
@@ -33,21 +34,24 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  const uploadResult = await uploadToS3(
-    profileImage.buffer,
-    profileImage.originalname,
-    profileImage.mimetype
-  );
+  const optimizedBuffer = await processImage(profileImage.buffer);
+  const filename = `department-${Date.now()}.webp`;
+
+  const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
 
   const department = await Department.create({
     name,
     email,
-    image_url: uploadResult?.url || null,
-    image_key: uploadResult?.key || null,
+    image: {
+      image_key: uploadResult?.key || null,
+      image_url: uploadResult?.url || null,
+    },
   });
 
-  if (department.image_key) {
-    department.image_url = await generatePresignedUrl(department.image_key);
+  if (department.image?.image_key) {
+    department.image.image_url = await generatePresignedUrl(
+      department.image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -91,8 +95,8 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   }
 
   for (const dept of departments) {
-    if (dept.image_key) {
-      dept.image_url = await generatePresignedUrl(dept.image_key);
+    if (dept.image?.image_key) {
+      dept.image.image_url = await generatePresignedUrl(dept.image.image_key);
     }
   }
 
@@ -125,8 +129,10 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  if (department.image_key) {
-    department.image_url = await generatePresignedUrl(department.image_key);
+  if (department.image?.image_key) {
+    department.image.image_url = await generatePresignedUrl(
+      department.image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -140,10 +146,6 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   const { name, email } = req.body;
   const profileImage = req.file;
 
-  if (!profileImage) {
-    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
-  }
-
   const department = await Department.findById(id);
   if (!department) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
@@ -156,17 +158,8 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   const isSameName = department.name === normalizedName;
   const isSameEmail = department.email === normalizedEmail;
 
-  if (isSameName && isSameEmail && !profileImage) {
-    if (department.image_key) {
-      department.image_url = await generatePresignedUrl(department.image_key);
-    }
-
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Nothing to update',
-      department,
-    });
-  }
+  let updated = false;
+  let imageUpdated = false;
 
   if (!isSameName || !isSameEmail) {
     const duplicate = await Department.findOne({
@@ -187,31 +180,69 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  if (department.image_key) {
-    await deleteFromS3(department.image_key);
+  // ✅ Handle image update
+  if (profileImage) {
+    if (department.image?.image_key) {
+      await deleteFromS3(department.image.image_key);
+    }
+
+    const optimizedBuffer = await processImage(profileImage.buffer);
+    const filename = `department-${Date.now()}.webp`;
+
+    const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
+
+    department.image = {
+      image_key: uploadResult?.key || null,
+      image_url: uploadResult?.url || null,
+    };
+
+    imageUpdated = true;
   }
 
-  const uploadResult = await uploadToS3(
-    profileImage.buffer,
-    profileImage.originalname,
-    profileImage.mimetype
-  );
+  // ✅ Handle image removal
+  else if (
+    !req.file &&
+    'image' in req.body &&
+    (!req.body.image || req.body.image === 'null')
+  ) {
+    if (department.image?.image_key) {
+      await deleteFromS3(department.image.image_key);
+    }
 
-  department.image_url = uploadResult?.url || department.image_url;
-  department.image_key = uploadResult?.key || department.image_key;
+    department.image = { image_key: null, image_url: null };
+    imageUpdated = true;
+  }
 
   if (trimmedName && trimmedName !== department.name) {
     department.name = trimmedName;
+    updated = true;
   }
 
   if (normalizedEmail !== department.email) {
     department.email = normalizedEmail;
+    updated = true;
+  }
+
+  if (!updated && !imageUpdated) {
+    if (department.image?.image_key) {
+      department.image.image_url = await generatePresignedUrl(
+        department.image.image_key
+      );
+    }
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Nothing to update',
+      department,
+    });
   }
 
   await department.save();
 
-  if (department.image_key) {
-    department.image_url = await generatePresignedUrl(department.image_key);
+  if (department.image?.image_key) {
+    department.image.image_url = await generatePresignedUrl(
+      department.image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -236,8 +267,8 @@ export const deleteDepartment = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  if (department.image_key) {
-    await deleteFromS3(department.image_key);
+  if (department.image?.image_key) {
+    await deleteFromS3(department.image.image_key);
   }
 
   await department.deleteOne();

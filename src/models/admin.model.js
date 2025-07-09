@@ -8,13 +8,12 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Full name is required'],
       trim: true,
-      max_length: [100, 'Full name must not exceed 100 characters'],
+      maxlength: [100, 'Full name must not exceed 100 characters'],
     },
     email: {
       type: String,
       required: [true, 'Email is required'],
       trim: true,
-      unique: true,
       lowercase: true,
       validate: {
         validator: validator.isEmail,
@@ -25,16 +24,20 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
-      unique: true,
       validate: {
-        validator: validator.isMobilePhone,
+        validator: (value) => validator.isMobilePhone(value, 'any'),
         message: 'Invalid phone number',
       },
     },
     password: {
       type: String,
       required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      minlength: [8, 'Password must be at least 8 characters'],
+      validate: {
+        validator: (pw) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\S]{8,}$/.test(pw),
+        message:
+          'Password must be at least 8 characters, include uppercase and lowercase letters, a number, and a special character',
+      },
       select: false,
     },
     role: {
@@ -47,15 +50,42 @@ const adminSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    is_deleted: {
+      type: Boolean,
+      default: false,
+      select: false,
+    },
     profile_image: {
-      public_id: {
+      image_key: {
         type: String,
         default: null,
+        validate: {
+          validator: (v) => v === null || typeof v === 'string',
+          message: 'Invalid image key',
+        },
       },
-      url: {
+      image_url: {
         type: String,
         default: null,
+        validate: {
+          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
+          message: 'Invalid image URL',
+        },
       },
+    },
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      default: null,
+    },
+    updated_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      default: null,
+    },
+    last_login: {
+      type: Date,
+      default: null,
     },
   },
   {
@@ -64,14 +94,39 @@ const adminSchema = new mongoose.Schema(
       updatedAt: 'updated_at',
     },
     toJSON: {
-      transform: function (doc, ret) {
+      transform(doc, ret) {
         delete ret.password;
         delete ret.__v;
         ret.id = ret._id;
         delete ret._id;
-        return ret;
       },
     },
+    toObject: {
+      transform(doc, ret) {
+        delete ret.password;
+        delete ret.__v;
+        ret.id = ret._id;
+        delete ret._id;
+      },
+    },
+  }
+);
+
+adminSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { is_deleted: false },
+    name: 'partial_unique_email',
+  }
+);
+
+adminSchema.index(
+  { phone_number: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { is_deleted: false },
+    name: 'partial_unique_phone_number',
   }
 );
 

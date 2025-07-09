@@ -4,6 +4,7 @@ import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
 import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import { generatePresignedUrl } from '../utils/s3.js';
+import { processImage } from '../utils/imageProcessor.js';
 
 export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
@@ -20,11 +21,10 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Company profile already exists'));
   }
 
-  const uploadResult = await uploadToS3(
-    profileImage.buffer,
-    profileImage.originalname,
-    profileImage.mimetype
-  );
+  const optimizedBuffer = await processImage(profileImage.buffer);
+  const filename = `company-profile-${Date.now()}.webp`;
+
+  const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
 
   const companyProfile = await CompanyProfile.create({
     company_name,
@@ -33,12 +33,16 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     address,
     button_name,
     button_redirect_url,
-    image_url: uploadResult?.url || null,
-    image_key: uploadResult?.key || null,
+    profile_image: {
+      image_key: uploadResult?.key || null,
+      image_url: uploadResult?.url || null,
+    },
   });
 
-  if (companyProfile.image_key) {
-    companyProfile.image_url = await generatePresignedUrl(companyProfile.image_key);
+  if (companyProfile.profile_image?.image_key) {
+    companyProfile.profile_image.image_url = await generatePresignedUrl(
+      companyProfile.profile_image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -55,8 +59,10 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  if (companyProfile.image_key) {
-    companyProfile.image_url = await generatePresignedUrl(companyProfile.image_key);
+  if (companyProfile.profile_image?.image_key) {
+    companyProfile.profile_image.image_url = await generatePresignedUrl(
+      companyProfile.profile_image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -84,25 +90,72 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const trimmedButtonName = button_name?.trim();
   const trimmedButtonUrl = button_redirect_url?.trim();
 
-  const isSameName = trimmedName === companyProfile.company_name;
-  const isSameWebsite = trimmedWebsite === companyProfile.website_link;
-  const isSameEstablished = trimmedEstablished === companyProfile.established;
-  const isSameAddress = trimmedAddress === companyProfile.address;
-  const isSameButtonName = trimmedButtonName === companyProfile.button_name;
-  const isSameButtonUrl = trimmedButtonUrl === companyProfile.button_redirect_url;
-  const isSameImage = !profileImage;
+  let updated = false;
+  let imageUpdated = false;
 
-  if (
-    (trimmedName ? isSameName : true) &&
-    (trimmedWebsite ? isSameWebsite : true) &&
-    (trimmedEstablished ? isSameEstablished : true) &&
-    (trimmedAddress ? isSameAddress : true) &&
-    (trimmedButtonName ? isSameButtonName : true) &&
-    (trimmedButtonUrl ? isSameButtonUrl : true) &&
-    isSameImage
+  if (trimmedName && trimmedName !== companyProfile.company_name) {
+    companyProfile.company_name = trimmedName;
+    updated = true;
+  }
+  if (trimmedWebsite && trimmedWebsite !== companyProfile.website_link) {
+    companyProfile.website_link = trimmedWebsite;
+    updated = true;
+  }
+  if (trimmedEstablished && trimmedEstablished !== companyProfile.established) {
+    companyProfile.established = trimmedEstablished;
+    updated = true;
+  }
+  if (trimmedAddress && trimmedAddress !== companyProfile.address) {
+    companyProfile.address = trimmedAddress;
+    updated = true;
+  }
+  if (trimmedButtonName && trimmedButtonName !== companyProfile.button_name) {
+    companyProfile.button_name = trimmedButtonName;
+    updated = true;
+  }
+  if (trimmedButtonUrl && trimmedButtonUrl !== companyProfile.button_redirect_url) {
+    companyProfile.button_redirect_url = trimmedButtonUrl;
+    updated = true;
+  }
+
+  // ✅ Handle image update
+  if (profileImage) {
+    if (companyProfile.profile_image?.image_key) {
+      await deleteFromS3(companyProfile.profile_image.image_key);
+    }
+
+    const optimizedBuffer = await processImage(profileImage.buffer);
+    const filename = `company-profile-${Date.now()}.webp`;
+
+    const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
+
+    companyProfile.profile_image = {
+      image_key: uploadResult?.key || null,
+      image_url: uploadResult?.url || null,
+    };
+
+    imageUpdated = true;
+  }
+
+  // ✅ Handle image removal
+  else if (
+    !req.file &&
+    'profile_image' in req.body &&
+    (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
-    if (companyProfile.image_key) {
-      companyProfile.image_url = await generatePresignedUrl(companyProfile.image_key);
+    if (companyProfile.profile_image?.image_key) {
+      await deleteFromS3(companyProfile.profile_image.image_key);
+    }
+
+    companyProfile.profile_image = { image_key: null, image_url: null };
+    imageUpdated = true;
+  }
+
+  if (!updated && !imageUpdated) {
+    if (companyProfile.profile_image?.image_key) {
+      companyProfile.profile_image.image_url = await generatePresignedUrl(
+        companyProfile.profile_image.image_key
+      );
     }
 
     return res.status(HTTP_STATUS.OK).json({
@@ -112,32 +165,12 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  if (profileImage) {
-    if (companyProfile.image_key) {
-      await deleteFromS3(companyProfile.image_key);
-    }
-
-    const uploadResult = await uploadToS3(
-      profileImage.buffer,
-      profileImage.originalname,
-      profileImage.mimetype
-    );
-
-    companyProfile.image_url = uploadResult?.url || companyProfile.image_url;
-    companyProfile.image_key = uploadResult?.key || companyProfile.image_key;
-  }
-
-  if (trimmedName && !isSameName) companyProfile.company_name = trimmedName;
-  if (trimmedWebsite && !isSameWebsite) companyProfile.website_link = trimmedWebsite;
-  if (trimmedEstablished && !isSameEstablished) companyProfile.established = trimmedEstablished;
-  if (trimmedAddress && !isSameAddress) companyProfile.address = trimmedAddress;
-  if (trimmedButtonName && !isSameButtonName) companyProfile.button_name = trimmedButtonName;
-  if (trimmedButtonUrl && !isSameButtonUrl) companyProfile.button_redirect_url = trimmedButtonUrl;
-
   await companyProfile.save();
 
-  if (companyProfile.image_key) {
-    companyProfile.image_url = await generatePresignedUrl(companyProfile.image_key);
+  if (companyProfile.profile_image?.image_key) {
+    companyProfile.profile_image.image_url = await generatePresignedUrl(
+      companyProfile.profile_image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -155,8 +188,8 @@ export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  if (companyProfile.image_key) {
-    await deleteFromS3(companyProfile.image_key);
+  if (companyProfile.profile_image?.image_key) {
+    await deleteFromS3(companyProfile.profile_image.image_key);
   }
 
   await companyProfile.deleteOne();

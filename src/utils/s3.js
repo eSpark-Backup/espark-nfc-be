@@ -1,5 +1,7 @@
 import AWS from 'aws-sdk';
 import envConfig from '../config/envConfig.js';
+import CustomError from '../utils/customError.js';
+import HTTP_STATUS from '../constants/httpStatus.js';
 
 const s3 = new AWS.S3({
   region: envConfig.s3.region,
@@ -10,14 +12,28 @@ const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
-export const generatePresignedUrl = async (key) => {
+/**
+ * Generate a presigned URL to access an object from S3.
+ * @param {string} key - The object key in S3.
+ * @param {number} expiresIn - Expiration time in seconds (default 1 hour).
+ * @returns {Promise<string>} - Presigned URL.
+ */
+export const generatePresignedUrl = async (key, expiresIn = 60 * 60) => {
+  if (!key || typeof key !== 'string') {
+    throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid S3 object key');
+  }
+
   const params = {
     Bucket: envConfig.s3.bucket,
     Key: key,
-    Expires: 60 * 60, // valid for 1 hour
+    Expires: expiresIn,
   };
 
-  return s3.getSignedUrlPromise('getObject', params);
+  try {
+    return await s3.getSignedUrlPromise('getObject', params);
+  } catch (error) {
+    throw new CustomError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Failed to generate presigned URL');
+  }
 };
 
 export default s3;

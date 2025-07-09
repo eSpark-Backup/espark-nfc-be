@@ -36,20 +36,19 @@ const createSuperAdmin = async () => {
         type: 'input',
         name: 'full_name',
         message: 'Full Name:',
-        validate: input => input.trim() !== '' || 'Full name is required',
+        validate: (input) => input.trim() !== '' || 'Full name is required',
       },
       {
         type: 'input',
         name: 'email',
         message: 'Email:',
-        validate: input =>
-          validator.isEmail(input) || 'Please enter a valid email address',
+        validate: (input) => validator.isEmail(input) || 'Please enter a valid email address',
       },
       {
         type: 'input',
         name: 'phone_number',
         message: 'Phone Number:',
-        validate: input => {
+        validate: (input) => {
           const trimmed = input.trim();
           const phoneRegex = /^(?:\+?\d{1,4}|0)\d{9,12}$/;
           if (!trimmed) return 'Phone number is required';
@@ -64,12 +63,11 @@ const createSuperAdmin = async () => {
         name: 'password',
         message: 'Password:',
         mask: '*',
-        validate: input => {
-          const passwordRegex =
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+        validate: (input) => {
+          const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\S]{8,}$/;
           return (
             passwordRegex.test(input) ||
-            'Password must contain at least 8 characters, include uppercase and lowercase character, a number and a special character'
+            'Password must be at least 8 characters, include uppercase and lowercase letters, a number, and a special character'
           );
         },
       },

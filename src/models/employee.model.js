@@ -93,14 +93,24 @@ const employeeSchema = new mongoose.Schema(
       default: '',
       required: [true, 'About me is required'],
     },
-    image_url: {
-      type: String,
-      required: true,
-    },
-    image_key: {
-      type: String,
-      required: true,
-    },
+    profile_image: {
+           image_key: {
+            type: String,
+            default: null,
+            validate: {
+                  validator: (v) => v === null || typeof v === 'string',
+                  message: 'Invalid image key',
+                },
+              },
+            image_url: {
+                  type: String,
+                  default: null,
+                  validate: {
+                    validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
+                    message: 'Invalid image URL',
+                  },
+              },
+            },
     department_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',

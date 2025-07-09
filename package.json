@@ -33,7 +33,8 @@
     "inquirer": "^12.7.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.1",
-    "multer": "^2.0.1"
+    "multer": "^2.0.1",
+    "sharp": "^0.34.2"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

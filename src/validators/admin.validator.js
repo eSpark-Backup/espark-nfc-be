@@ -36,13 +36,12 @@ export const validateCreateAdmin = [
     .matches(/[\W_]/)
     .withMessage('Password must contain a special character'),
 
-  // Note: Profile image is optional and validated via multer/s3 middleware
+  // Note: Profile image is optional and validated via multer/S3 middleware
 ];
 
 export const validateUpdateAdmin = [
   param('id').isMongoId().withMessage('Invalid admin ID'),
 
-  // Ensure at least one field is present
   (req, res, next) => {
     const updatableFields = ['full_name', 'email', 'phone_number'];
     const hasValidField = updatableFields.some((field) => field in req.body);
@@ -59,7 +58,7 @@ export const validateUpdateAdmin = [
   },
 
   body('full_name')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .notEmpty()
     .withMessage('Full name cannot be empty')
@@ -67,7 +66,7 @@ export const validateUpdateAdmin = [
     .withMessage('Full name can be up to 100 characters'),
 
   body('email')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .notEmpty()
     .withMessage('Email cannot be empty')
@@ -75,7 +74,7 @@ export const validateUpdateAdmin = [
     .withMessage('Invalid email address'),
 
   body('phone_number')
-    .optional()
+    .optional({ checkFalsy: true, nullable: true })
     .trim()
     .notEmpty()
     .withMessage('Phone number cannot be empty')

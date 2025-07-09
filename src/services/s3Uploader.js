@@ -1,5 +1,8 @@
 import AWS from 'aws-sdk';
+import path from 'path';
 import envConfig from '../config/envConfig.js';
+import CustomError from '../utils/customError.js';
+import HTTP_STATUS from '../constants/httpStatus.js';
 
 const s3 = new AWS.S3({
   region: envConfig.s3.region,
@@ -10,20 +13,34 @@ const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
-export const uploadToS3 = async (fileBuffer, originalName, mimeType) => {
-  const timestamp = Date.now();
-  const fileKey = `${timestamp}-${originalName}`; // ✅ Consistent, clean key
+const isSupportedMime = (type) =>
+  ['image/webp', 'image/jpeg', 'image/png', 'image/jpg'].includes(type);
 
-  // Defensive check
+// Upload to S3
+export const uploadToS3 = async (fileBuffer, fileName, mimeType) => {
   if (!Buffer.isBuffer(fileBuffer)) {
-    throw new Error('Provided fileBuffer is not a valid Buffer.');
+    throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Uploaded file is not a valid buffer');
   }
+
+  if (!mimeType || !isSupportedMime(mimeType)) {
+    throw new CustomError(HTTP_STATUS.UNSUPPORTED_MEDIA_TYPE, 'Unsupported image MIME type');
+  }
+
+  if (!fileName || typeof fileName !== 'string') {
+    throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid or missing file name');
+  }
+
+  const safeFileName = fileName.replace(/\s+/g, '-').toLowerCase();
+  const ext = path.extname(safeFileName) || '.webp';
+  const timestamp = Date.now();
+  const key = `${timestamp}-${safeFileName}`; // filename should already include admin id
 
   const params = {
     Bucket: envConfig.s3.bucket,
-    Key: fileKey,
+    Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
+    CacheControl: 'public, max-age=31536000',
   };
 
   const uploaded = await s3.upload(params).promise();
@@ -34,7 +51,12 @@ export const uploadToS3 = async (fileBuffer, originalName, mimeType) => {
   };
 };
 
+// Delete from S3
 export const deleteFromS3 = async (key) => {
+  if (!key || typeof key !== 'string') {
+    throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid S3 key');
+  }
+
   const params = {
     Bucket: envConfig.s3.bucket,
     Key: key,
