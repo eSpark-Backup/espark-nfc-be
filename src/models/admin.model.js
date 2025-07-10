@@ -44,7 +44,7 @@ const adminSchema = new mongoose.Schema(
       type: String,
       enum: ['super-admin', 'admin'],
       default: 'admin',
-      immutable: true,
+      // Removed immutable: true so role can be updated if needed by controller logic
     },
     is_active: {
       type: Boolean,
@@ -146,6 +146,9 @@ adminSchema.pre('findOneAndUpdate', async function (next) {
     const salt = await bcrypt.genSalt(10);
     update.password = await bcrypt.hash(update.password, salt);
   }
+
+  // ✅ Ensure validation runs on updates
+  this.setOptions({ runValidators: true });
   next();
 });
 

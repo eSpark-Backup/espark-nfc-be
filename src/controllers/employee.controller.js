@@ -30,11 +30,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedPhone = phone_number.trim();
-
   const existing = await Employee.findOne({
-    $or: [{ email: normalizedEmail }, { phone_number: normalizedPhone }],
+    $or: [{ email }, { phone_number }],
   });
 
   if (existing) {
@@ -47,20 +44,20 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
   }
 
   const newEmployee = new Employee({
-    name: name.trim(),
-    email: normalizedEmail,
-    phone_number: normalizedPhone,
+    name,
+    email,
+    phone_number,
     age,
     joining_date,
-    designation: designation.trim(),
+    designation,
     department_id,
-    about_me: about_me.trim(),
-    address: address.trim(),
+    about_me,
+    address,
     social_links: {
-      facebook: facebook?.trim().toLowerCase() || '',
-      twitter: twitter?.trim().toLowerCase() || '',
-      instagram: instagram?.trim().toLowerCase() || '',
-      youtube: youtube?.trim().toLowerCase() || '',
+      facebook,
+      twitter,
+      instagram,
+      youtube,
     },
     created_by: req.user.id,
     updated_by: req.user.id,
@@ -102,15 +99,6 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     ['name', 'email', 'created_at']
   );
 
-  if (employees.length === 0) {
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'No employees found',
-      employees: [],
-      pagination,
-    });
-  }
-
   for (const emp of employees) {
     if (emp.profile_image?.image_key) {
       emp.profile_image.image_url = await generatePresignedUrl(emp.profile_image.image_key);
@@ -119,6 +107,7 @@ export const getEmployees = asyncWrapper(async (req, res) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: employees.length ? 'Employees fetched successfully' : 'No employees found',
     employees,
     pagination,
   });
@@ -165,30 +154,21 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   let updated = false;
 
-  const trimmedEmail = email?.trim().toLowerCase();
-  const trimmedPhone = phone_number?.trim();
-  const normalizedSocial = {
-    facebook: facebook?.trim().toLowerCase() || '',
-    twitter: twitter?.trim().toLowerCase() || '',
-    instagram: instagram?.trim().toLowerCase() || '',
-    youtube: youtube?.trim().toLowerCase() || '',
-  };
-
-  if (trimmedEmail && trimmedEmail !== employee.email) {
-    const existingEmail = await Employee.findOne({ email: trimmedEmail, _id: { $ne: id } });
+  if (email && email !== employee.email) {
+    const existingEmail = await Employee.findOne({ email, _id: { $ne: id } });
     if (existingEmail) {
       return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email already exists'));
     }
-    employee.email = trimmedEmail;
+    employee.email = email;
     updated = true;
   }
 
-  if (trimmedPhone && trimmedPhone !== employee.phone_number) {
-    const existingPhone = await Employee.findOne({ phone_number: trimmedPhone, _id: { $ne: id } });
+  if (phone_number && phone_number !== employee.phone_number) {
+    const existingPhone = await Employee.findOne({ phone_number, _id: { $ne: id } });
     if (existingPhone) {
       return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Phone number already exists'));
     }
-    employee.phone_number = trimmedPhone;
+    employee.phone_number = phone_number;
     updated = true;
   }
 
@@ -203,20 +183,18 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   Object.entries(otherFields).forEach(([key, value]) => {
     if (value !== undefined && value !== employee[key]) {
-      employee[key] = typeof value === 'string' ? value.trim() : value;
+      employee[key] = value;
       updated = true;
     }
   });
 
-  const oldSocial = employee.social_links || {};
-  const newSocial = normalizedSocial;
-
-  const socialChanged = ['facebook', 'twitter', 'instagram', 'youtube'].some(
-    (key) => (oldSocial[key] || '') !== newSocial[key]
+  const newSocialLinks = { facebook, twitter, instagram, youtube };
+  const socialChanged = Object.keys(newSocialLinks).some(
+    (key) => (employee.social_links[key] || '') !== newSocialLinks[key]
   );
 
   if (socialChanged) {
-    employee.social_links = newSocial;
+    employee.social_links = newSocialLinks;
     updated = true;
   }
 
@@ -237,7 +215,6 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
     updated = true;
   } else if (
-    !req.file &&
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {

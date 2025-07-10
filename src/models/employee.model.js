@@ -14,6 +14,10 @@ const employeeSchema = new mongoose.Schema(
       required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
+      validate: {
+        validator: validator.isEmail,
+        message: 'Invalid email address',
+      },
     },
     phone_number: {
       type: String,
@@ -43,7 +47,8 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Address is required'],
       trim: true,
-      default: '',
+      minlength: [10, 'Address must be at least 10 characters'],
+      maxlength: [300, 'Address must not exceed 300 characters']
     },
     social_links: {
       facebook: {
@@ -83,7 +88,7 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'About me is required'],
       trim: true,
-      default: '',
+      maxlength: [500, 'About me must not exceed 500 characters']
     },
     profile_image: {
       image_key: {

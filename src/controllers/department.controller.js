@@ -10,18 +10,18 @@ import { processImage } from '../utils/imageProcessor.js';
 
 const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
+// ======================== CREATE ========================
 export const createDepartment = asyncWrapper(async (req, res, next) => {
   const { name, email } = req.body;
-  const profileImage = req.file;
 
-  if (!profileImage) {
+  if (!req.file) {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
   }
 
   const normalizedName = normalize(name);
 
   const existingDepartment = await Department.findOne({
-    $or: [{ email: email }, { name: new RegExp(`^${normalizedName}$`, 'i') }],
+    $or: [{ email }, { name: new RegExp(`^${normalizedName}$`, 'i') }],
   });
 
   if (existingDepartment) {
@@ -33,7 +33,7 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  const optimizedBuffer = await processImage(profileImage.buffer);
+  const optimizedBuffer = await processImage(req.file.buffer);
   const filename = `department-${Date.now()}.webp`;
 
   const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
@@ -59,6 +59,7 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// ======================== GET ALL ========================
 export const getAllDepartments = asyncWrapper(async (req, res) => {
   const includeEmployees = req.query.include_employees === 'true';
 
@@ -79,15 +80,6 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
     ['name', 'email', 'createdAt']
   );
 
-  if (departments.length === 0) {
-    return res.status(HTTP_STATUS.OK).json({
-      success: false,
-      message: 'No departments found',
-      departments: [],
-      pagination,
-    });
-  }
-
   for (const dept of departments) {
     if (dept.image?.image_key) {
       dept.image.image_url = await generatePresignedUrl(dept.image.image_key);
@@ -96,11 +88,13 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: departments.length ? 'Departments fetched successfully' : 'No departments found',
     departments,
     pagination,
   });
 });
 
+// ======================== GET BY ID ========================
 export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const includeEmployees = req.query.include_employees === 'true';
@@ -126,23 +120,23 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: 'Department fetched successfully',
     department,
   });
 });
 
+// ======================== UPDATE ========================
 export const updateDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { name, email } = req.body;
-  const profileImage = req.file;
 
   const department = await Department.findById(id);
   if (!department) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const trimmedName = name?.trim();
-  const normalizedName = trimmedName ? normalize(trimmedName) : normalize(department.name);
-  const normalizedEmail = email?.trim().toLowerCase() || department.email;
+  const normalizedName = name ? normalize(name) : normalize(department.name);
+  const normalizedEmail = email || department.email;
 
   const isSameName = normalize(department.name) === normalizedName;
   const isSameEmail = department.email === normalizedEmail;
@@ -166,13 +160,13 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  // ✅ Handle image update
-  if (profileImage) {
+  // Handle image update
+  if (req.file) {
     if (department.image?.image_key) {
       await deleteFromS3(department.image.image_key);
     }
 
-    const optimizedBuffer = await processImage(profileImage.buffer);
+    const optimizedBuffer = await processImage(req.file.buffer);
     const filename = `department-${Date.now()}.webp`;
 
     const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
@@ -185,8 +179,8 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     imageUpdated = true;
   }
 
-  // ✅ Handle image removal
-  else if (!req.file && 'image' in req.body && (!req.body.image || req.body.image === 'null')) {
+  // Handle image removal
+  else if ('image' in req.body && (!req.body.image || req.body.image === 'null')) {
     if (department.image?.image_key) {
       await deleteFromS3(department.image.image_key);
     }
@@ -195,17 +189,17 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     imageUpdated = true;
   }
 
-  if (trimmedName && trimmedName !== department.name) {
-    department.name = trimmedName;
+  if (name && name !== department.name) {
+    department.name = name;
     updated = true;
   }
 
-  if (normalizedEmail !== department.email) {
-    department.email = normalizedEmail;
+  if (email && email !== department.email) {
+    department.email = email;
     updated = true;
   }
 
-  if (updated) {
+  if (updated || imageUpdated) {
     department.updated_by = req.admin.id;
   }
 
@@ -234,6 +228,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// ======================== DELETE ========================
 export const deleteDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const department = await Department.findById(id);

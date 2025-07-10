@@ -6,13 +6,12 @@ import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import { generatePresignedUrl } from '../utils/s3.js';
 import { processImage } from '../utils/imageProcessor.js';
 
+// Create Company Profile
 export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
 
-  const profileImage = req.file;
-
-  if (!profileImage) {
+  if (!req.file) {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
   }
 
@@ -21,9 +20,8 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Company profile already exists'));
   }
 
-  const optimizedBuffer = await processImage(profileImage.buffer);
+  const optimizedBuffer = await processImage(req.file.buffer);
   const filename = `company-profile-${Date.now()}.webp`;
-
   const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
 
   const companyProfile = await CompanyProfile.create({
@@ -37,6 +35,7 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
       image_key: uploadResult?.key || null,
       image_url: uploadResult?.url || null,
     },
+    created_by: req.user.id,
   });
 
   if (companyProfile.profile_image?.image_key) {
@@ -52,6 +51,7 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Get Company Profile
 export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne();
 
@@ -71,61 +71,52 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Update Company Profile
 export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
-
-  const profileImage = req.file;
 
   const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  const trimmedName = company_name?.trim();
-  const trimmedWebsite = website_link?.trim();
-  const trimmedEstablished = established?.trim();
-  const trimmedAddress = address?.trim();
-  const trimmedButtonName = button_name?.trim();
-  const trimmedButtonUrl = button_redirect_url?.trim();
-
   let updated = false;
   let imageUpdated = false;
 
-  if (trimmedName && trimmedName !== companyProfile.company_name) {
-    companyProfile.company_name = trimmedName;
+  if (company_name && company_name !== companyProfile.company_name) {
+    companyProfile.company_name = company_name;
     updated = true;
   }
-  if (trimmedWebsite && trimmedWebsite !== companyProfile.website_link) {
-    companyProfile.website_link = trimmedWebsite;
+  if (website_link && website_link !== companyProfile.website_link) {
+    companyProfile.website_link = website_link;
     updated = true;
   }
-  if (trimmedEstablished && trimmedEstablished !== companyProfile.established) {
-    companyProfile.established = trimmedEstablished;
+  if (established && established !== companyProfile.established) {
+    companyProfile.established = established;
     updated = true;
   }
-  if (trimmedAddress && trimmedAddress !== companyProfile.address) {
-    companyProfile.address = trimmedAddress;
+  if (address && address !== companyProfile.address) {
+    companyProfile.address = address;
     updated = true;
   }
-  if (trimmedButtonName && trimmedButtonName !== companyProfile.button_name) {
-    companyProfile.button_name = trimmedButtonName;
+  if (button_name && button_name !== companyProfile.button_name) {
+    companyProfile.button_name = button_name;
     updated = true;
   }
-  if (trimmedButtonUrl && trimmedButtonUrl !== companyProfile.button_redirect_url) {
-    companyProfile.button_redirect_url = trimmedButtonUrl;
+  if (button_redirect_url && button_redirect_url !== companyProfile.button_redirect_url) {
+    companyProfile.button_redirect_url = button_redirect_url;
     updated = true;
   }
 
-  // ✅ Handle image update
-  if (profileImage) {
+  // Handle image update
+  if (req.file) {
     if (companyProfile.profile_image?.image_key) {
       await deleteFromS3(companyProfile.profile_image.image_key);
     }
 
-    const optimizedBuffer = await processImage(profileImage.buffer);
+    const optimizedBuffer = await processImage(req.file.buffer);
     const filename = `company-profile-${Date.now()}.webp`;
-
     const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
 
     companyProfile.profile_image = {
@@ -136,9 +127,8 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     imageUpdated = true;
   }
 
-  // ✅ Handle image removal
+  // Handle image removal
   else if (
-    !req.file &&
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
@@ -164,6 +154,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     });
   }
 
+  companyProfile.updated_by = req.user.id;
   await companyProfile.save();
 
   if (companyProfile.profile_image?.image_key) {
@@ -179,6 +170,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Delete Company Profile
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {

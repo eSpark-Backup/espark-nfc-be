@@ -1,3 +1,5 @@
+// src/validators/employee.validator.js
+
 import { body, param } from 'express-validator';
 import mongoose from 'mongoose';
 
@@ -66,7 +68,7 @@ export const validateCreateEmployee = [
     .isLength({ min: 10, max: 300 })
     .withMessage('Address must be between 10 and 300 characters'),
 
-  // Optional Social Links
+  // Optional social links
   body('social_links.facebook')
     .optional({ checkFalsy: true })
     .trim()
@@ -169,7 +171,7 @@ export const validateUpdateEmployee = [
     .isLength({ min: 10, max: 300 })
     .withMessage('Address must be between 10 and 300 characters'),
 
-  // Optional Social Links
+  // Optional social links
   body('social_links.facebook')
     .optional({ checkFalsy: true })
     .trim()

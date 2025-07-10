@@ -13,9 +13,13 @@ export const login = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email and password are required'));
   }
 
-  const admin = await Admin.findOne({ email, is_deleted: false, is_active: true }).select(
-    '+password'
-  );
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const admin = await Admin.findOne({
+    email: normalizedEmail,
+    is_deleted: false,
+    is_active: true,
+  }).select('+password');
 
   if (!admin) {
     return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));

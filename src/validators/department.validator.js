@@ -28,7 +28,7 @@ export const validateUpdateDepartment = [
   (req, res, next) => {
     const updatableFields = ['name', 'email'];
     const hasValidField = updatableFields.some((field) => field in req.body);
-    if (!hasValidField) {
+    if (!hasValidField && !req.file) {
       return res.status(400).json({
         success: false,
         message: 'At least one field (name or email) must be provided to update',
@@ -38,7 +38,7 @@ export const validateUpdateDepartment = [
   },
 
   body('name')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
     .notEmpty()
     .withMessage('Department name is required')
@@ -48,7 +48,7 @@ export const validateUpdateDepartment = [
     .withMessage('Department name must include at least one alphabet character'),
 
   body('email')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
     .toLowerCase()
     .notEmpty()

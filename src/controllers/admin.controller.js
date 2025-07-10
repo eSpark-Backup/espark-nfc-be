@@ -46,14 +46,18 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
 
   await admin.save();
 
-  if (admin.profile_image?.image_key) {
-    admin.profile_image.image_url = await generatePresignedUrl(admin.profile_image.image_key);
+  const savedAdmin = await Admin.findById(admin._id).select('-password');
+
+  if (savedAdmin.profile_image?.image_key) {
+    savedAdmin.profile_image.image_url = await generatePresignedUrl(
+      savedAdmin.profile_image.image_key
+    );
   }
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
     message: 'Admin created successfully',
-    admin,
+    admin: savedAdmin,
   });
 });
 
@@ -120,19 +124,12 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  const trimmedName = full_name?.trim();
-  const normalizedEmail = email?.trim().toLowerCase();
-  const normalizedPhone = phone_number?.trim();
-
-  const emailChanged = normalizedEmail && normalizedEmail !== admin.email;
-  const phoneChanged = normalizedPhone && normalizedPhone !== admin.phone_number;
+  const emailChanged = email && email !== admin.email;
+  const phoneChanged = phone_number && phone_number !== admin.phone_number;
 
   if (emailChanged || phoneChanged) {
     const duplicate = await Admin.findOne({
-      $or: [
-        ...(emailChanged ? [{ email: normalizedEmail }] : []),
-        ...(phoneChanged ? [{ phone_number: normalizedPhone }] : []),
-      ],
+      $or: [...(emailChanged ? [{ email }] : []), ...(phoneChanged ? [{ phone_number }] : [])],
       _id: { $ne: id },
       is_deleted: false,
     });
@@ -181,18 +178,18 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
 
   let updated = false;
 
-  if (trimmedName && trimmedName !== admin.full_name) {
-    admin.full_name = trimmedName;
+  if (full_name && full_name !== admin.full_name) {
+    admin.full_name = full_name;
     updated = true;
   }
 
   if (emailChanged) {
-    admin.email = normalizedEmail;
+    admin.email = email;
     updated = true;
   }
 
   if (phoneChanged) {
-    admin.phone_number = normalizedPhone;
+    admin.phone_number = phone_number;
     updated = true;
   }
 

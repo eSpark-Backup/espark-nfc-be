@@ -42,7 +42,7 @@ export const validateUpdateCompanyProfile = [
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('Company name is required')
+    .withMessage('Company name cannot be empty')
     .isLength({ max: 150 })
     .withMessage('Company name must not exceed 150 characters'),
 
@@ -59,7 +59,7 @@ export const validateUpdateCompanyProfile = [
     .isLength({ max: 30 })
     .withMessage('Established field must not exceed 30 characters'),
 
-  body('address').optional().trim().notEmpty().withMessage('Address is required'),
+  body('address').optional().trim().notEmpty().withMessage('Address cannot be empty'),
 
   body('button_name')
     .optional({ checkFalsy: true })
