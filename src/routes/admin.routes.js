@@ -9,7 +9,7 @@ import {
 import verifyToken from '../middlewares/authMiddleware.js';
 import isSuperAdmin from '../middlewares/isSuperAdmin.js';
 import validateRequest from '../middlewares/validateRequest.js';
-import upload from '../middlewares/uploadMiddleware.js'; // handles S3 upload
+import upload from '../middlewares/uploadMiddleware.js';
 import {
   validateCreateAdmin,
   validateUpdateAdmin,
@@ -18,33 +18,20 @@ import {
 
 const router = express.Router();
 
+// 🔐 Only super admin can access admin routes
 router.use(verifyToken, isSuperAdmin);
 
-// Create admin (optional image upload)
-router.post(
-  '/',
-  upload.single('profile_image'), // handles image upload to S3
-  validateCreateAdmin,
-  validateRequest,
-  createAdmin
-);
+// 📌 Create admin / Get all admins
+router
+  .route('/')
+  .post(upload.single('profile_image'), validateCreateAdmin, validateRequest, createAdmin)
+  .get(getAllAdmins);
 
-// Get all admins
-router.get('/', getAllAdmins);
-
-// Get admin by ID
-router.get('/:id', validateAdminId, validateRequest, getAdminById);
-
-// Update admin (replace profile image if new one provided)
-router.patch(
-  '/:id',
-  upload.single('profile_image'), // upload new image to S3 if exists
-  validateUpdateAdmin,
-  validateRequest,
-  updateAdmin
-);
-
-// Delete admin (image deleted in controller if it exists)
-router.delete('/:id', validateAdminId, validateRequest, deleteAdmin);
+// 📌 Get / Update / Delete admin by ID
+router
+  .route('/:id')
+  .get(validateAdminId, validateRequest, getAdminById)
+  .patch(upload.single('profile_image'), validateUpdateAdmin, validateRequest, updateAdmin)
+  .delete(validateAdminId, validateRequest, deleteAdmin);
 
 export default router;

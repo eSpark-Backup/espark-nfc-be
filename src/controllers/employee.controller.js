@@ -30,11 +30,15 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
   }
 
-  const normalizedEmail = email.toLowerCase();
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPhone = phone_number.trim();
 
-  const existingEmail = await Employee.findOne({ email: normalizedEmail });
-  if (existingEmail) {
-    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email already exists'));
+  const existing = await Employee.findOne({
+    $or: [{ email: normalizedEmail }, { phone_number: normalizedPhone }],
+  });
+
+  if (existing) {
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email or phone number already exists'));
   }
 
   const department = await Department.findById(department_id);
@@ -43,21 +47,23 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
   }
 
   const newEmployee = new Employee({
-    name,
+    name: name.trim(),
     email: normalizedEmail,
-    phone_number,
+    phone_number: normalizedPhone,
     age,
     joining_date,
-    designation,
+    designation: designation.trim(),
     department_id,
-    about_me,
-    address,
+    about_me: about_me.trim(),
+    address: address.trim(),
     social_links: {
-      facebook: facebook || '',
-      twitter: twitter || '',
-      instagram: instagram || '',
-      youtube: youtube || '',
+      facebook: facebook?.trim().toLowerCase() || '',
+      twitter: twitter?.trim().toLowerCase() || '',
+      instagram: instagram?.trim().toLowerCase() || '',
+      youtube: youtube?.trim().toLowerCase() || '',
     },
+    created_by: req.user.id,
+    updated_by: req.user.id,
   });
 
   const optimizedBuffer = await processImage(req.file.buffer);
@@ -78,10 +84,13 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  res.status(HTTP_STATUS.CREATED).json({ success: true, employee: newEmployee });
+  res.status(HTTP_STATUS.CREATED).json({
+    success: true,
+    employee: newEmployee,
+  });
 });
 
-// Get all employees (with pagination/search/sort)
+// Get all employees
 export const getEmployees = asyncWrapper(async (req, res) => {
   const baseQuery = Employee.find();
 
@@ -115,9 +124,10 @@ export const getEmployees = asyncWrapper(async (req, res) => {
   });
 });
 
-// Get single employee by ID
+// Get employee by ID
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
+
   const employee = await Employee.findById(id).populate('department_id', 'name email');
 
   if (!employee) {
@@ -137,56 +147,49 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 // Update employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-  const { email, department_id, facebook, twitter, instagram, youtube, ...otherFields } = req.body;
+  const {
+    email,
+    phone_number,
+    department_id,
+    facebook,
+    twitter,
+    instagram,
+    youtube,
+    ...otherFields
+  } = req.body;
 
   const employee = await Employee.findById(id);
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  const trimmedEmail = email?.trim().toLowerCase();
-  const trimmedDeptId = department_id?.trim() || employee.department_id.toString();
+  let updated = false;
 
+  const trimmedEmail = email?.trim().toLowerCase();
+  const trimmedPhone = phone_number?.trim();
   const normalizedSocial = {
-    facebook: facebook?.trim() || '',
-    twitter: twitter?.trim() || '',
-    instagram: instagram?.trim() || '',
-    youtube: youtube?.trim() || '',
+    facebook: facebook?.trim().toLowerCase() || '',
+    twitter: twitter?.trim().toLowerCase() || '',
+    instagram: instagram?.trim().toLowerCase() || '',
+    youtube: youtube?.trim().toLowerCase() || '',
   };
 
-  const isSameEmail = trimmedEmail === employee.email;
-  const isSameDept = trimmedDeptId === employee.department_id.toString();
-  const isSameImage = !req.file && !('profile_image' in req.body);
-  const socialUnchanged =
-    (employee.social_links.facebook || '') === normalizedSocial.facebook &&
-    (employee.social_links.twitter || '') === normalizedSocial.twitter &&
-    (employee.social_links.instagram || '') === normalizedSocial.instagram &&
-    (employee.social_links.youtube || '') === normalizedSocial.youtube;
-
-  const otherFieldsUnchanged = Object.entries(otherFields).every(([key, value]) => {
-    return employee[key]?.toString() === value?.toString();
-  });
-
-  if (isSameEmail && isSameDept && isSameImage && socialUnchanged && otherFieldsUnchanged) {
-    if (employee.profile_image?.image_key) {
-      employee.profile_image.image_url = await generatePresignedUrl(
-        employee.profile_image.image_key
-      );
-    }
-
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Nothing to update',
-      employee,
-    });
-  }
-
   if (trimmedEmail && trimmedEmail !== employee.email) {
-    const duplicate = await Employee.findOne({ email: trimmedEmail, _id: { $ne: id } });
-    if (duplicate) {
+    const existingEmail = await Employee.findOne({ email: trimmedEmail, _id: { $ne: id } });
+    if (existingEmail) {
       return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email already exists'));
     }
     employee.email = trimmedEmail;
+    updated = true;
+  }
+
+  if (trimmedPhone && trimmedPhone !== employee.phone_number) {
+    const existingPhone = await Employee.findOne({ phone_number: trimmedPhone, _id: { $ne: id } });
+    if (existingPhone) {
+      return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Phone number already exists'));
+    }
+    employee.phone_number = trimmedPhone;
+    updated = true;
   }
 
   if (department_id && department_id !== employee.department_id.toString()) {
@@ -195,20 +198,28 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
       return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
     }
     employee.department_id = department_id;
+    updated = true;
   }
 
   Object.entries(otherFields).forEach(([key, value]) => {
-    if (value !== undefined) {
-      employee[key] = value;
+    if (value !== undefined && value !== employee[key]) {
+      employee[key] = typeof value === 'string' ? value.trim() : value;
+      updated = true;
     }
   });
 
-  employee.social_links.facebook = normalizedSocial.facebook;
-  employee.social_links.twitter = normalizedSocial.twitter;
-  employee.social_links.instagram = normalizedSocial.instagram;
-  employee.social_links.youtube = normalizedSocial.youtube;
+  const oldSocial = employee.social_links || {};
+  const newSocial = normalizedSocial;
 
-  // ✅ Image update
+  const socialChanged = ['facebook', 'twitter', 'instagram', 'youtube'].some(
+    (key) => (oldSocial[key] || '') !== newSocial[key]
+  );
+
+  if (socialChanged) {
+    employee.social_links = newSocial;
+    updated = true;
+  }
+
   if (req.file) {
     if (employee.profile_image?.image_key) {
       await deleteFromS3(employee.profile_image.image_key);
@@ -223,10 +234,9 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
       image_key: uploadResult?.key || null,
       image_url: uploadResult?.url || null,
     };
-  }
 
-  // ✅ Image removal
-  else if (
+    updated = true;
+  } else if (
     !req.file &&
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
@@ -236,8 +246,24 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     }
 
     employee.profile_image = { image_key: null, image_url: null };
+    updated = true;
   }
 
+  if (!updated) {
+    if (employee.profile_image?.image_key) {
+      employee.profile_image.image_url = await generatePresignedUrl(
+        employee.profile_image.image_key
+      );
+    }
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Nothing to update',
+      employee,
+    });
+  }
+
+  employee.updated_by = req.user.id;
   await employee.save();
 
   if (employee.profile_image?.image_key) {

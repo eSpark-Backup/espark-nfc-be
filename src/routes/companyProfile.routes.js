@@ -6,37 +6,35 @@ import {
   deleteCompanyProfile,
 } from '../controllers/companyProfile.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
+import isSuperAdmin from '../middlewares/isSuperAdmin.js';
 import upload from '../middlewares/uploadMiddleware.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateCompanyProfile,
   validateUpdateCompanyProfile,
-  validateCompanyProfileId,
 } from '../validators/companyProfile.validator.js';
-import isSuperAdmin from '../middlewares/isSuperAdmin.js';
 
 const router = express.Router();
 
+// 🔒 Only super admin can access company profile routes
 router.use(verifyToken, isSuperAdmin);
 
-router.post(
-  '/',
-  upload.single('profile_image'),
-  validateCreateCompanyProfile,
-  validateRequest,
-  createCompanyProfile
-);
-
-router.get('/', getCompanyProfile);
-
-router.patch(
-  '/:id',
-  upload.single('profile_image'),
-  validateUpdateCompanyProfile,
-  validateRequest,
-  updateCompanyProfile
-);
-
-router.delete('/:id', validateCompanyProfileId, validateRequest, deleteCompanyProfile);
+// 📌 All CRUD operations on the same '/' route
+router
+  .route('/')
+  .post(
+    upload.single('profile_image'),
+    validateCreateCompanyProfile,
+    validateRequest,
+    createCompanyProfile
+  )
+  .get(getCompanyProfile)
+  .patch(
+    upload.single('profile_image'),
+    validateUpdateCompanyProfile,
+    validateRequest,
+    updateCompanyProfile
+  )
+  .delete(deleteCompanyProfile);
 
 export default router;

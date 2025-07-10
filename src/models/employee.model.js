@@ -7,28 +7,20 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Employee name is required'],
       trim: true,
-      max_length: [100, 'Employee name must not exceed 100 characters'],
+      maxlength: [100, 'Employee name must not exceed 100 characters'],
     },
     email: {
       type: String,
       required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
-      unique: [true, 'Email must be unique'],
-      validate: {
-        validator: validator.isEmail,
-        message: 'Invalid email address',
-      },
     },
     phone_number: {
       type: String,
       required: [true, 'Phone number is required'],
       trim: true,
-      unique: [true, 'Phone number must be unique'],
       validate: {
-        validator: function (v) {
-          return /^\+?[0-9]{7,15}$/.test(v);
-        },
+        validator: (v) => /^\+?[0-9]{7,15}$/.test(v),
         message: 'Phone number must be between 7 and 15 digits',
       },
     },
@@ -49,9 +41,9 @@ const employeeSchema = new mongoose.Schema(
     },
     address: {
       type: String,
+      required: [true, 'Address is required'],
       trim: true,
       default: '',
-      required: [true, 'Address is required'],
     },
     social_links: {
       facebook: {
@@ -89,32 +81,42 @@ const employeeSchema = new mongoose.Schema(
     },
     about_me: {
       type: String,
+      required: [true, 'About me is required'],
       trim: true,
       default: '',
-      required: [true, 'About me is required'],
     },
     profile_image: {
-           image_key: {
-            type: String,
-            default: null,
-            validate: {
-                  validator: (v) => v === null || typeof v === 'string',
-                  message: 'Invalid image key',
-                },
-              },
-            image_url: {
-                  type: String,
-                  default: null,
-                  validate: {
-                    validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
-                    message: 'Invalid image URL',
-                  },
-              },
-            },
+      image_key: {
+        type: String,
+        default: null,
+        validate: {
+          validator: (v) => v === null || typeof v === 'string',
+          message: 'Invalid image key',
+        },
+      },
+      image_url: {
+        type: String,
+        default: null,
+        validate: {
+          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
+          message: 'Invalid image URL',
+        },
+      },
+    },
     department_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',
       required: [true, 'Department is required'],
+    },
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      required: true,
+    },
+    updated_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      required: true,
     },
   },
   {
@@ -123,7 +125,16 @@ const employeeSchema = new mongoose.Schema(
       updatedAt: 'updated_at',
     },
     toJSON: {
-      virtual: true,
+      virtuals: true,
+      transform: function (doc, ret) {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
       transform: function (doc, ret) {
         ret.id = ret._id;
         delete ret._id;
@@ -133,6 +144,18 @@ const employeeSchema = new mongoose.Schema(
     },
   }
 );
+
+// Virtual populate: department info
+employeeSchema.virtual('department', {
+  ref: 'Department',
+  localField: 'department_id',
+  foreignField: '_id',
+  justOne: true,
+});
+
+// Indexes for uniqueness
+employeeSchema.index({ email: 1 }, { unique: true });
+employeeSchema.index({ phone_number: 1 }, { unique: true });
 
 const Employee = mongoose.model('Employee', employeeSchema);
 

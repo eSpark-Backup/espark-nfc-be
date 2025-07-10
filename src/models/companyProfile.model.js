@@ -7,11 +7,12 @@ const companyProfileSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Company name is required'],
       trim: true,
-      max_length: [150, 'Company name must not exceed 150 characters'],
+      maxlength: [150, 'Company name must not exceed 150 characters'],
     },
     website_link: {
       type: String,
       trim: true,
+      required: false,
       validate: {
         validator: (value) => !value || validator.isURL(value),
         message: 'Invalid website URL',
@@ -20,7 +21,8 @@ const companyProfileSchema = new mongoose.Schema(
     established: {
       type: String,
       trim: true,
-      max_length: [30, 'Established field must not exceed 30 characters'],
+      required: false,
+      maxlength: [30, 'Established field must not exceed 30 characters'],
     },
     address: {
       type: String,
@@ -30,33 +32,35 @@ const companyProfileSchema = new mongoose.Schema(
     button_name: {
       type: String,
       trim: true,
-      max_length: [50, 'Button name must not exceed 50 characters'],
+      required: false,
+      maxlength: [50, 'Button name must not exceed 50 characters'],
     },
     button_redirect_url: {
       type: String,
       trim: true,
+      required: false,
       validate: {
         validator: (value) => !value || validator.isURL(value),
         message: 'Invalid redirect URL',
       },
     },
     profile_image: {
-          image_key: {
-            type: String,
-            default: null,
-            validate: {
-              validator: (v) => v === null || typeof v === 'string',
-              message: 'Invalid image key',
-            },
-          },
-          image_url: {
-            type: String,
-            default: null,
-            validate: {
-              validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
-              message: 'Invalid image URL',
-            },
-          },
+      image_key: {
+        type: String,
+        default: null,
+        validate: {
+          validator: (v) => v === null || typeof v === 'string',
+          message: 'Invalid image key',
+        },
+      },
+      image_url: {
+        type: String,
+        default: null,
+        validate: {
+          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
+          message: 'Invalid image URL',
+        },
+      },
     },
   },
   {
@@ -65,8 +69,17 @@ const companyProfileSchema = new mongoose.Schema(
       updatedAt: 'updated_at',
     },
     toJSON: {
-      virtual: true,
-      transform: function (doc, ret) {
+      virtuals: true,
+      transform(doc, ret) {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;

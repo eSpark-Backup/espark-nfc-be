@@ -19,10 +19,9 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
   }
 
   const normalizedName = normalize(name);
-  const normalizedEmail = email.toLowerCase();
 
   const existingDepartment = await Department.findOne({
-    $or: [{ email: normalizedEmail }, { name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } }],
+    $or: [{ email: email }, { name: new RegExp(`^${normalizedName}$`, 'i') }],
   });
 
   if (existingDepartment) {
@@ -46,12 +45,11 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
       image_key: uploadResult?.key || null,
       image_url: uploadResult?.url || null,
     },
+    created_by: req.admin.id,
   });
 
   if (department.image?.image_key) {
-    department.image.image_url = await generatePresignedUrl(
-      department.image.image_key
-    );
+    department.image.image_url = await generatePresignedUrl(department.image.image_key);
   }
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -64,16 +62,12 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
 export const getAllDepartments = asyncWrapper(async (req, res) => {
   const includeEmployees = req.query.include_employees === 'true';
 
-  let baseQuery = Department.find();
-  baseQuery = baseQuery.populate('employee_count');
+  let baseQuery = Department.find().populate('employee_count');
 
   if (includeEmployees) {
     baseQuery = baseQuery.populate({
       path: 'employees',
-      options: {
-        sort: { createdAt: -1 },
-        limit: 5,
-      },
+      options: { sort: { createdAt: -1 }, limit: 5 },
     });
   }
 
@@ -116,10 +110,7 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   if (includeEmployees) {
     query = query.populate({
       path: 'employees',
-      options: {
-        sort: { createdAt: -1 },
-        limit: 10,
-      },
+      options: { sort: { createdAt: -1 }, limit: 10 },
     });
   }
 
@@ -130,9 +121,7 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   }
 
   if (department.image?.image_key) {
-    department.image.image_url = await generatePresignedUrl(
-      department.image.image_key
-    );
+    department.image.image_url = await generatePresignedUrl(department.image.image_key);
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -152,10 +141,10 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   }
 
   const trimmedName = name?.trim();
-  const normalizedName = trimmedName ? normalize(trimmedName) : department.name;
+  const normalizedName = trimmedName ? normalize(trimmedName) : normalize(department.name);
   const normalizedEmail = email?.trim().toLowerCase() || department.email;
 
-  const isSameName = department.name === normalizedName;
+  const isSameName = normalize(department.name) === normalizedName;
   const isSameEmail = department.email === normalizedEmail;
 
   let updated = false;
@@ -163,10 +152,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
 
   if (!isSameName || !isSameEmail) {
     const duplicate = await Department.findOne({
-      $or: [
-        { email: normalizedEmail },
-        { name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } },
-      ],
+      $or: [{ email: normalizedEmail }, { name: new RegExp(`^${normalizedName}$`, 'i') }],
       _id: { $ne: id },
     });
 
@@ -200,11 +186,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   }
 
   // ✅ Handle image removal
-  else if (
-    !req.file &&
-    'image' in req.body &&
-    (!req.body.image || req.body.image === 'null')
-  ) {
+  else if (!req.file && 'image' in req.body && (!req.body.image || req.body.image === 'null')) {
     if (department.image?.image_key) {
       await deleteFromS3(department.image.image_key);
     }
@@ -223,11 +205,13 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
+  if (updated) {
+    department.updated_by = req.admin.id;
+  }
+
   if (!updated && !imageUpdated) {
     if (department.image?.image_key) {
-      department.image.image_url = await generatePresignedUrl(
-        department.image.image_key
-      );
+      department.image.image_url = await generatePresignedUrl(department.image.image_key);
     }
 
     return res.status(HTTP_STATUS.OK).json({
@@ -240,9 +224,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   await department.save();
 
   if (department.image?.image_key) {
-    department.image.image_url = await generatePresignedUrl(
-      department.image.image_key
-    );
+    department.image.image_url = await generatePresignedUrl(department.image.image_key);
   }
 
   res.status(HTTP_STATUS.OK).json({

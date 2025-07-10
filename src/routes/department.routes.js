@@ -17,28 +17,25 @@ import {
 
 const router = express.Router();
 
+// 🔒 Apply authentication to all department routes
 router.use(verifyToken);
 
-router.post(
-  '/',
-  upload.single('profile_image'),
-  validateCreateDepartment,
-  validateRequest,
-  createDepartment
-);
+// 📌 Create and get all departments
+router
+  .route('/')
+  .post(upload.single('profile_image'), validateCreateDepartment, validateRequest, createDepartment)
+  .get(getAllDepartments);
 
-router.get('/', getAllDepartments);
-
-router.get('/:id', validateDepartmentId, validateRequest, getDepartmentById);
-
-router.patch(
-  '/:id',
-  upload.single('profile_image'),
-  validateUpdateDepartment,
-  validateRequest,
-  updateDepartment
-);
-
-router.delete('/:id', validateDepartmentId, validateRequest, deleteDepartment);
+// 📌 Get, update, delete department by ID
+router
+  .route('/:id')
+  .get(validateDepartmentId, validateRequest, getDepartmentById)
+  .patch(
+    upload.single('profile_image'),
+    validateUpdateDepartment,
+    validateRequest,
+    updateDepartment
+  )
+  .delete(validateDepartmentId, validateRequest, deleteDepartment);
 
 export default router;

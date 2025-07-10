@@ -69,15 +69,6 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
     ['full_name', 'email', 'created_at']
   );
 
-  if (admins.length === 0) {
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'No admins found',
-      admins: [],
-      pagination,
-    });
-  }
-
   for (const admin of admins) {
     if (admin.profile_image?.image_key) {
       admin.profile_image.image_url = await generatePresignedUrl(admin.profile_image.image_key);
@@ -86,7 +77,7 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: 'Admins fetched successfully',
+    message: admins.length ? 'Admins fetched successfully' : 'No admins found',
     admins,
     pagination,
   });
@@ -158,7 +149,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
 
   let imageUpdated = false;
 
-  // ✅ Handle image upload
+  // Handle image upload
   if (req.file) {
     if (admin.profile_image?.image_key) {
       await deleteFromS3(admin.profile_image.image_key);
@@ -175,9 +166,8 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     imageUpdated = true;
   }
 
-  // ✅ Handle image removal if profile_image field is sent empty
+  // Handle image removal
   else if (
-    !req.file &&
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
@@ -232,8 +222,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-// Delete Admin
+// Delete Admin (Soft Delete)
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
@@ -253,6 +242,7 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   }
 
   admin.is_deleted = true;
+  admin.is_active = false;
   admin.updated_by = req.admin?.id || null;
   await admin.save();
 

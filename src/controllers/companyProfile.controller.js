@@ -75,10 +75,9 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
 
-  const { id } = req.params;
   const profileImage = req.file;
 
-  const companyProfile = await CompanyProfile.findById(id);
+  const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
@@ -181,9 +180,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
 });
 
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
-  const { id } = req.params;
-
-  const companyProfile = await CompanyProfile.findById(id);
+  const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }

@@ -5,14 +5,15 @@ import { body } from 'express-validator';
 
 const router = express.Router();
 
-router.post(
-  '/login',
-  [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').notEmpty().withMessage('Password is required'),
-  ],
-  validateRequest,
-  login
-);
+router
+  .route('/login')
+  .post(
+    [
+      body('email').isEmail().withMessage('Valid email is required'),
+      body('password').notEmpty().withMessage('Password is required'),
+    ],
+    validateRequest,
+    login
+  );
 
 export default router;

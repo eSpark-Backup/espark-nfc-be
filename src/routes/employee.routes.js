@@ -17,17 +17,20 @@ import {
 
 const router = express.Router();
 
+// Apply authentication middleware to all routes
 router.use(verifyToken);
 
+// Create and get employees
 router
   .route('/')
   .post(upload.single('profile_image'), validateCreateEmployee, validateRequest, createEmployee)
   .get(getEmployees);
 
+// Get, update, delete by ID
 router
   .route('/:id')
   .get(validateEmployeeId, validateRequest, getEmployeeById)
   .patch(upload.single('profile_image'), validateUpdateEmployee, validateRequest, updateEmployee)
-  .delete(deleteEmployee);
+  .delete(validateEmployeeId, validateRequest, deleteEmployee);
 
 export default router;

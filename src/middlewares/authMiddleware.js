@@ -18,8 +18,8 @@ const verifyToken = asyncWrapper(async (req, res, next) => {
     const decoded = jwt.verify(token, envConfig.jwt.secret);
     const admin = await Admin.findById(decoded.id).select('-password');
 
-    if (!admin) {
-      return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Admin not found'));
+    if (!admin || admin.deleted || !admin.is_active) {
+      return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Access Denied'));
     }
 
     req.admin = admin;

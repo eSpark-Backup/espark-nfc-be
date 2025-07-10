@@ -10,6 +10,7 @@ export const validateCreateAdmin = [
 
   body('email')
     .trim()
+    .toLowerCase()
     .notEmpty()
     .withMessage('Email is required')
     .isEmail()
@@ -36,7 +37,7 @@ export const validateCreateAdmin = [
     .matches(/[\W_]/)
     .withMessage('Password must contain a special character'),
 
-  // Note: Profile image is optional and validated via multer/S3 middleware
+  // Note: Profile image is optional and validated by multer
 ];
 
 export const validateUpdateAdmin = [
@@ -57,6 +58,13 @@ export const validateUpdateAdmin = [
     next();
   },
 
+  body('password').custom((value) => {
+    if (value) {
+      throw new Error('Password cannot be updated from this route');
+    }
+    return true;
+  }),
+
   body('full_name')
     .optional({ checkFalsy: true, nullable: true })
     .trim()
@@ -68,6 +76,7 @@ export const validateUpdateAdmin = [
   body('email')
     .optional({ checkFalsy: true, nullable: true })
     .trim()
+    .toLowerCase()
     .notEmpty()
     .withMessage('Email cannot be empty')
     .isEmail()
