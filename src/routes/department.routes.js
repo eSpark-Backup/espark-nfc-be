@@ -23,7 +23,7 @@ router.use(verifyToken);
 // 📌 Create and get all departments
 router
   .route('/')
-  .post(upload.single('profile_image'), validateCreateDepartment, validateRequest, createDepartment)
+  .post(upload.single('image'), validateCreateDepartment, validateRequest, createDepartment)
   .get(getAllDepartments);
 
 // 📌 Get, update, delete department by ID
@@ -31,7 +31,7 @@ router
   .route('/:id')
   .get(validateDepartmentId, validateRequest, getDepartmentById)
   .patch(
-    upload.single('profile_image'),
+    upload.single('image'),
     validateUpdateDepartment,
     validateRequest,
     updateDepartment

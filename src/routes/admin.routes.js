@@ -31,7 +31,7 @@ router
 router
   .route('/:id')
   .get(validateAdminId, validateRequest, getAdminById)
-  .patch(upload.single('profile_image'), validateUpdateAdmin, validateRequest, updateAdmin)
+  .patch(validateAdminId, upload.single('profile_image'), validateUpdateAdmin, validateRequest, updateAdmin)
   .delete(validateAdminId, validateRequest, deleteAdmin);
 
 export default router;
