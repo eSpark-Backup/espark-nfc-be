@@ -162,7 +162,6 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     };
     imageUpdated = true;
   }
-
   // Handle image removal
   else if (
     'profile_image' in req.body &&
