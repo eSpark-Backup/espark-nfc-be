@@ -63,7 +63,10 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
 export const getAllDepartments = asyncWrapper(async (req, res) => {
   const includeEmployees = req.query.include_employees === 'true';
 
-  let baseQuery = Department.find().populate('employee_count');
+  let baseQuery = Department.find()
+    .populate('employee_count')
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
   if (includeEmployees) {
     baseQuery = baseQuery.populate({
@@ -99,7 +102,10 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const includeEmployees = req.query.include_employees === 'true';
 
-  let query = Department.findById(id).populate('employee_count');
+  let query = Department.findById(id)
+    .populate('employee_count')
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
   if (includeEmployees) {
     query = query.populate({

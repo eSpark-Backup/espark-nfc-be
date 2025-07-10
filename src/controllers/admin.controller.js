@@ -63,7 +63,10 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
 
 // Get All Admins
 export const getAllAdmins = asyncWrapper(async (req, res) => {
-  const baseQuery = Admin.find({ role: 'admin', is_deleted: false }).select('-password');
+  const baseQuery = Admin.find({ role: 'admin', is_deleted: false })
+    .select('-password')
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
   const { results: admins, pagination } = await applyQueryOptions(
     Admin,
@@ -91,7 +94,10 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
 export const getAdminById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  const admin = await Admin.findOne({ _id: id, is_deleted: false }).select('-password');
+  const admin = await Admin.findOne({ _id: id, is_deleted: false })
+    .select('-password')
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');;
 
   if (!admin || admin.role !== 'admin') {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));

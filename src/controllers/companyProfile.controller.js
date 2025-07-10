@@ -53,7 +53,9 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
 
 // Get Company Profile
 export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
-  const companyProfile = await CompanyProfile.findOne();
+  const companyProfile = await CompanyProfile.findOne()
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
@@ -76,7 +78,8 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
 
-  const companyProfile = await CompanyProfile.findOne();
+  const companyProfile = await CompanyProfile.findOne()
+  
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }

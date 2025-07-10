@@ -89,7 +89,9 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
 
 // Get all employees
 export const getEmployees = asyncWrapper(async (req, res) => {
-  const baseQuery = Employee.find();
+  const baseQuery = Employee.find()
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
   const { results: employees, pagination } = await applyQueryOptions(
     Employee,
@@ -117,7 +119,10 @@ export const getEmployees = asyncWrapper(async (req, res) => {
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  const employee = await Employee.findById(id).populate('department_id', 'name email');
+  const employee = await Employee.findById(id)
+    .populate('department_id', 'name email')
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
