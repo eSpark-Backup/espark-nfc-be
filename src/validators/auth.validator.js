@@ -1,7 +1,6 @@
 import { body } from 'express-validator';
 
 export const validateLogin = [
-  // ✅ Email: required, valid format, normalized
   body('email')
     .trim()
     .notEmpty()
@@ -9,9 +8,13 @@ export const validateLogin = [
     .bail()
     .isEmail()
     .withMessage('Please enter a valid email address')
-    .normalizeEmail(),
+    .normalizeEmail({
+      gmail_remove_dots: false,
+      gmail_remove_subaddress: false,
+      gmail_convert_googlemaildotcom: false,
+      all_lowercase: true, // Optional: keep emails lowercase (standard)
+    }),
 
-  // ✅ Password: required, minimum length
   body('password')
     .trim()
     .notEmpty()
