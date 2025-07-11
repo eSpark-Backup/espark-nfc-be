@@ -4,7 +4,7 @@ import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
 import { generateToken } from '../utils/token.js';
 import bcrypt from 'bcryptjs';
-import { generatePresignedUrl } from '../utils/s3.js';
+import { attachPresignedImageUrl } from '../utils/imageHelper.js';
 
 export const login = asyncWrapper(async (req, res, next) => {
   const { email, password } = req.body;
@@ -30,16 +30,13 @@ export const login = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
   }
 
-  // Update last_login
+  // Update last login timestamp
   admin.last_login = new Date();
   await admin.save();
 
   const token = generateToken({ id: admin._id, role: admin.role });
 
-  let image_url = null;
-  if (admin.profile_image?.image_key) {
-    image_url = await generatePresignedUrl(admin.profile_image.image_key);
-  }
+  await attachPresignedImageUrl(admin);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -51,7 +48,7 @@ export const login = asyncWrapper(async (req, res, next) => {
       email: admin.email,
       phone_number: admin.phone_number,
       role: admin.role,
-      image_url,
+      image_url: admin.profile_image?.image_url || null,
     },
   });
 });

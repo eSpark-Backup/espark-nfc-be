@@ -2,11 +2,13 @@ import CompanyProfile from '../models/companyProfile.model.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
-import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
-import { generatePresignedUrl } from '../utils/s3.js';
-import { processImage } from '../utils/imageProcessor.js';
+import {
+  replaceImage,
+  removeImage,
+  attachPresignedImageUrl,
+} from '../utils/imageHelper.js';
 
-// Create Company Profile
+// ======================== CREATE ========================
 export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
@@ -20,29 +22,19 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Company profile already exists'));
   }
 
-  const optimizedBuffer = await processImage(req.file.buffer);
-  const filename = `company-profile-${Date.now()}.webp`;
-  const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
-
-  const companyProfile = await CompanyProfile.create({
+  const companyProfile = new CompanyProfile({
     company_name,
     website_link,
     established,
     address,
     button_name,
     button_redirect_url,
-    profile_image: {
-      image_key: uploadResult?.key || null,
-      image_url: uploadResult?.url || null,
-    },
     created_by: req.user.id,
   });
 
-  if (companyProfile.profile_image?.image_key) {
-    companyProfile.profile_image.image_url = await generatePresignedUrl(
-      companyProfile.profile_image.image_key
-    );
-  }
+  await replaceImage(companyProfile, req.file.buffer, 'company-profile');
+  await companyProfile.save();
+  await attachPresignedImageUrl(companyProfile);
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -51,7 +43,7 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Get Company Profile
+// ======================== GET ========================
 export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne()
     .populate('created_by', 'full_name email')
@@ -61,11 +53,7 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  if (companyProfile.profile_image?.image_key) {
-    companyProfile.profile_image.image_url = await generatePresignedUrl(
-      companyProfile.profile_image.image_key
-    );
-  }
+  await attachPresignedImageUrl(companyProfile);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -73,19 +61,17 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Update Company Profile
+// ======================== UPDATE ========================
 export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
 
-  const companyProfile = await CompanyProfile.findOne()
-  
+  const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
   let updated = false;
-  let imageUpdated = false;
 
   if (company_name && company_name !== companyProfile.company_name) {
     companyProfile.company_name = company_name;
@@ -112,44 +98,19 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  // Handle image update
   if (req.file) {
-    if (companyProfile.profile_image?.image_key) {
-      await deleteFromS3(companyProfile.profile_image.image_key);
-    }
-
-    const optimizedBuffer = await processImage(req.file.buffer);
-    const filename = `company-profile-${Date.now()}.webp`;
-    const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
-
-    companyProfile.profile_image = {
-      image_key: uploadResult?.key || null,
-      image_url: uploadResult?.url || null,
-    };
-
-    imageUpdated = true;
-  }
-
-  // Handle image removal
-  else if (
+    await replaceImage(companyProfile, req.file.buffer, 'company-profile');
+    updated = true;
+  } else if (
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
-    if (companyProfile.profile_image?.image_key) {
-      await deleteFromS3(companyProfile.profile_image.image_key);
-    }
-
-    companyProfile.profile_image = { image_key: null, image_url: null };
-    imageUpdated = true;
+    await removeImage(companyProfile);
+    updated = true;
   }
 
-  if (!updated && !imageUpdated) {
-    if (companyProfile.profile_image?.image_key) {
-      companyProfile.profile_image.image_url = await generatePresignedUrl(
-        companyProfile.profile_image.image_key
-      );
-    }
-
+  if (!updated) {
+    await attachPresignedImageUrl(companyProfile);
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Nothing to update',
@@ -159,12 +120,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
 
   companyProfile.updated_by = req.user.id;
   await companyProfile.save();
-
-  if (companyProfile.profile_image?.image_key) {
-    companyProfile.profile_image.image_url = await generatePresignedUrl(
-      companyProfile.profile_image.image_key
-    );
-  }
+  await attachPresignedImageUrl(companyProfile);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -173,17 +129,14 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Delete Company Profile
+// ======================== DELETE ========================
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  if (companyProfile.profile_image?.image_key) {
-    await deleteFromS3(companyProfile.profile_image.image_key);
-  }
-
+  await removeImage(companyProfile);
   await companyProfile.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({

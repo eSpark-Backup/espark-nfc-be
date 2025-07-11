@@ -2,39 +2,21 @@ import Employee from '../models/employee.model.js';
 import Department from '../models/department.model.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
-import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
-import applyQueryOptions from '../utils/queryHelper.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
-import { generatePresignedUrl } from '../utils/s3.js';
-import { processImage } from '../utils/imageProcessor.js';
+import applyQueryOptions from '../utils/queryHelper.js';
+import {
+  replaceImage,
+  removeImage,
+  attachPresignedImageUrl,
+} from '../utils/imageHelper.js';
+import { checkDuplicateEmployee } from '../utils/duplicateChecker.js';
 
-// Create employee
+// =================== CREATE ===================
 export const createEmployee = asyncWrapper(async (req, res, next) => {
-  const {
-    name,
-    email,
-    phone_number,
-    age,
-    joining_date,
-    designation,
-    department_id,
-    about_me,
-    address,
-    facebook,
-    twitter,
-    instagram,
-    youtube,
-  } = req.body;
+  const { email, phone_number, department_id, ...rest } = req.body;
 
-  if (!req.file) {
-    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
-  }
-
-  const existing = await Employee.findOne({
-    $or: [{ email }, { phone_number }],
-  });
-
-  if (existing) {
+  const duplicate = await checkDuplicateEmployee({ email, phone_number, Employee });
+  if (duplicate) {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email or phone number already exists'));
   }
 
@@ -43,51 +25,36 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const newEmployee = new Employee({
-    name,
+  const employee = new Employee({
+    ...rest,
     email,
     phone_number,
-    age,
-    joining_date,
-    designation,
     department_id,
-    about_me,
-    address,
     social_links: {
-      facebook,
-      twitter,
-      instagram,
-      youtube,
+      facebook: req.body.facebook,
+      twitter: req.body.twitter,
+      instagram: req.body.instagram,
+      youtube: req.body.youtube,
     },
-    created_by: req.user.id,
-    updated_by: req.user.id,
+    created_by: req.user?.id || null,
+    updated_by: req.user?.id || null,
   });
 
-  const optimizedBuffer = await processImage(req.file.buffer);
-  const filename = `employee-${newEmployee._id}.webp`;
-
-  const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
-
-  newEmployee.profile_image = {
-    image_key: uploadResult?.key || null,
-    image_url: uploadResult?.url || null,
-  };
-
-  await newEmployee.save();
-
-  if (newEmployee.profile_image?.image_key) {
-    newEmployee.profile_image.image_url = await generatePresignedUrl(
-      newEmployee.profile_image.image_key
-    );
+  if (req.file) {
+    await replaceImage(employee, req.file.buffer, 'employee');
   }
+
+  await employee.save();
+  await attachPresignedImageUrl(employee);
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
-    employee: newEmployee,
+    message: 'Employee created successfully',
+    employee,
   });
 });
 
-// Get all employees
+// =================== GET ALL ===================
 export const getEmployees = asyncWrapper(async (req, res) => {
   const baseQuery = Employee.find()
     .populate('created_by', 'full_name email')
@@ -101,11 +68,7 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     ['name', 'email', 'created_at']
   );
 
-  for (const emp of employees) {
-    if (emp.profile_image?.image_key) {
-      emp.profile_image.image_url = await generatePresignedUrl(emp.profile_image.image_key);
-    }
-  }
+  await Promise.all(employees.map(attachPresignedImageUrl));
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -115,7 +78,7 @@ export const getEmployees = asyncWrapper(async (req, res) => {
   });
 });
 
-// Get employee by ID
+// =================== GET BY ID ===================
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
@@ -128,17 +91,16 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  if (employee.profile_image?.image_key) {
-    employee.profile_image.image_url = await generatePresignedUrl(employee.profile_image.image_key);
-  }
+  await attachPresignedImageUrl(employee);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
+    message: 'Employee fetched successfully',
     employee,
   });
 });
 
-// Update employee
+// =================== UPDATE ===================
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const {
@@ -149,7 +111,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     twitter,
     instagram,
     youtube,
-    ...otherFields
+    ...fieldsToUpdate
   } = req.body;
 
   const employee = await Employee.findById(id);
@@ -159,22 +121,30 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   let updated = false;
 
-  if (email && email !== employee.email) {
-    const existingEmail = await Employee.findOne({ email, _id: { $ne: id } });
-    if (existingEmail) {
-      return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email already exists'));
-    }
-    employee.email = email;
-    updated = true;
-  }
+  if (
+    (email && email !== employee.email) ||
+    (phone_number && phone_number !== employee.phone_number)
+  ) {
+    const duplicate = await checkDuplicateEmployee({
+      email: email !== employee.email ? email : null,
+      phone_number: phone_number !== employee.phone_number ? phone_number : null,
+      excludeId: id,
+      Employee,
+    });
 
-  if (phone_number && phone_number !== employee.phone_number) {
-    const existingPhone = await Employee.findOne({ phone_number, _id: { $ne: id } });
-    if (existingPhone) {
-      return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Phone number already exists'));
+    if (duplicate) {
+      return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email or phone number already exists'));
     }
-    employee.phone_number = phone_number;
-    updated = true;
+
+    if (email) {
+      employee.email = email;
+      updated = true;
+    }
+
+    if (phone_number) {
+      employee.phone_number = phone_number;
+      updated = true;
+    }
   }
 
   if (department_id && department_id !== employee.department_id.toString()) {
@@ -186,58 +156,35 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  Object.entries(otherFields).forEach(([key, value]) => {
+  Object.entries(fieldsToUpdate).forEach(([key, value]) => {
     if (value !== undefined && value !== employee[key]) {
       employee[key] = value;
       updated = true;
     }
   });
 
-  const newSocialLinks = { facebook, twitter, instagram, youtube };
-  const socialChanged = Object.keys(newSocialLinks).some(
-    (key) => (employee.social_links[key] || '') !== newSocialLinks[key]
+  const socialLinksChanged = ['facebook', 'twitter', 'instagram', 'youtube'].some(
+    (key) => (employee.social_links[key] || '') !== req.body[key]
   );
 
-  if (socialChanged) {
-    employee.social_links = newSocialLinks;
+  if (socialLinksChanged) {
+    employee.social_links = { facebook, twitter, instagram, youtube };
     updated = true;
   }
 
   if (req.file) {
-    if (employee.profile_image?.image_key) {
-      await deleteFromS3(employee.profile_image.image_key);
-    }
-
-    const optimizedBuffer = await processImage(req.file.buffer);
-    const filename = `employee-${employee._id}.webp`;
-
-    const uploadResult = await uploadToS3(optimizedBuffer, filename, 'image/webp');
-
-    employee.profile_image = {
-      image_key: uploadResult?.key || null,
-      image_url: uploadResult?.url || null,
-    };
-
+    await replaceImage(employee, req.file.buffer, 'employee');
     updated = true;
   } else if (
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
-    if (employee.profile_image?.image_key) {
-      await deleteFromS3(employee.profile_image.image_key);
-    }
-
-    employee.profile_image = { image_key: null, image_url: null };
+    await removeImage(employee);
     updated = true;
   }
 
   if (!updated) {
-    if (employee.profile_image?.image_key) {
-      employee.profile_image.image_url = await generatePresignedUrl(
-        employee.profile_image.image_key
-      );
-    }
-
+    await attachPresignedImageUrl(employee);
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Nothing to update',
@@ -245,12 +192,10 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  employee.updated_by = req.user.id;
+  employee.updated_by = req.user?.id || null;
   await employee.save();
 
-  if (employee.profile_image?.image_key) {
-    employee.profile_image.image_url = await generatePresignedUrl(employee.profile_image.image_key);
-  }
+  await attachPresignedImageUrl(employee);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -259,7 +204,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Delete employee
+// =================== DELETE ===================
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
@@ -268,10 +213,7 @@ export const deleteEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  if (employee.profile_image?.image_key) {
-    await deleteFromS3(employee.profile_image.image_key);
-  }
-
+  await removeImage(employee);
   await employee.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({
