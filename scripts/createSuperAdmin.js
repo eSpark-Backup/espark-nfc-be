@@ -23,9 +23,8 @@ const createSuperAdmin = async () => {
         name: 'secret',
         message: '\nEnter super admin creation secret:',
         mask: '*',
-        validate: input =>
-          input === envConfig.superAdmin.secret ||
-          '❌ Invalid secret. Access denied.',
+        validate: (input) =>
+          input === envConfig.superAdmin.secret || '❌ Invalid secret. Access denied.',
       },
     ]);
 
@@ -36,7 +35,14 @@ const createSuperAdmin = async () => {
         type: 'input',
         name: 'full_name',
         message: 'Full Name:',
-        validate: (input) => input.trim() !== '' || 'Full name is required',
+        validate: (input) => {
+          const trimmed = input.trim();
+          if (!trimmed) return 'Full name is required';
+          if (trimmed.length < 3 || trimmed.length > 100) {
+            return 'Full name must be between 3 and 100 characters';
+          }
+          return true;
+        },
       },
       {
         type: 'input',
@@ -50,10 +56,10 @@ const createSuperAdmin = async () => {
         message: 'Phone Number:',
         validate: (input) => {
           const trimmed = input.trim();
-          const phoneRegex = /^(?:\+?\d{1,4}|0)\d{9,12}$/;
+          const phoneRegex = /^\+?[\d\-]{7,15}$/;
           if (!trimmed) return 'Phone number is required';
           if (!phoneRegex.test(trimmed)) {
-            return 'Phone number must be valid and contain 10 to 15 digits (e.g. +923001234567 or 03001234567)';
+            return 'Phone number must be 7 to 15 digits, may include "+" or hyphens';
           }
           return true;
         },
@@ -73,7 +79,7 @@ const createSuperAdmin = async () => {
       },
     ]);
 
-    // ✅ Check for duplicate email/phone
+    // ✅ Check for duplicate email or phone
     const existing = await Admin.findOne({
       $or: [{ email: answers.email }, { phone_number: answers.phone_number }],
     });

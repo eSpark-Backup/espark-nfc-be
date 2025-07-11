@@ -28,8 +28,12 @@ const adminSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       trim: true,
       validate: {
-        validator: (v) => validator.isMobilePhone(v, 'any'),
-        message: 'Invalid phone number',
+        validator: function (v) {
+          const digitsOnly = v.replace(/\D/g, '');
+          const phoneRegex = /^\+?[0-9\-]+$/;
+          return digitsOnly.length >= 7 && digitsOnly.length <= 15 && phoneRegex.test(v);
+        },
+        message: 'Invalid phone number format',
       },
     },
     password: {

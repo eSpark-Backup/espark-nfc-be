@@ -28,8 +28,12 @@ const employeeSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       trim: true,
       validate: {
-        validator: (v) => /^\+?[0-9]{7,15}$/.test(v),
-        message: 'Phone number must be between 7 and 15 digits',
+        validator: function (v) {
+          const digitsOnly = v.replace(/\D/g, '');
+          const phoneRegex = /^\+?[0-9\-]+$/;
+          return digitsOnly.length >= 7 && digitsOnly.length <= 15 && phoneRegex.test(v);
+        },
+        message: 'Invalid phone number format',
       },
     },
     age: {
