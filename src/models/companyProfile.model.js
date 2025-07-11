@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
+import imageSchema from './shared/imageSchema.js';
+import { auditFields } from './shared/auditFields.js';
+import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
 const companyProfileSchema = new mongoose.Schema(
   {
@@ -12,7 +15,6 @@ const companyProfileSchema = new mongoose.Schema(
     website_link: {
       type: String,
       trim: true,
-      required: false,
       validate: {
         validator: (value) => !value || validator.isURL(value),
         message: 'Invalid website URL',
@@ -21,7 +23,6 @@ const companyProfileSchema = new mongoose.Schema(
     established: {
       type: String,
       trim: true,
-      required: false,
       maxlength: [30, 'Established field must not exceed 30 characters'],
     },
     address: {
@@ -32,73 +33,21 @@ const companyProfileSchema = new mongoose.Schema(
     button_name: {
       type: String,
       trim: true,
-      required: false,
       maxlength: [50, 'Button name must not exceed 50 characters'],
     },
     button_redirect_url: {
       type: String,
       trim: true,
-      required: false,
       validate: {
         validator: (value) => !value || validator.isURL(value),
         message: 'Invalid redirect URL',
       },
     },
-    profile_image: {
-      image_key: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || typeof v === 'string',
-          message: 'Invalid image key',
-        },
-      },
-      image_url: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
-          message: 'Invalid image URL',
-        },
-      },
-    },
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      default: null,
-    },
-    updated_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      default: null,
-    },
+    profile_image: imageSchema,
+    ...auditFields,
   },
-  {
-    timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-    toJSON: {
-      virtuals: true,
-      transform(doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-    toObject: {
-      virtuals: true,
-      transform(doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
+  baseSchemaOptions
 );
 
 const CompanyProfile = mongoose.model('CompanyProfile', companyProfileSchema);
-
 export default CompanyProfile;

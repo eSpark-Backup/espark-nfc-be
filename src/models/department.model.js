@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
+import imageSchema from './shared/imageSchema.js';
+import { auditFields } from './shared/auditFields.js';
+import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
 const departmentSchema = new mongoose.Schema(
   {
@@ -19,69 +22,20 @@ const departmentSchema = new mongoose.Schema(
         message: 'Invalid email address',
       },
     },
-    image: {
-      image_key: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || typeof v === 'string',
-          message: 'Invalid image key',
-        },
-      },
-      image_url: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
-          message: 'Invalid image URL',
-        },
-      },
-    },
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      default: null,
-    },
-    updated_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      default: null,
-    },
+    image: imageSchema,
+    ...auditFields,
   },
-  {
-    timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-    toJSON: {
-      virtuals: true,
-      transform(doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-    toObject: {
-      virtuals: true,
-      transform(doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
+  baseSchemaOptions
 );
 
-// Virtual to get all employees in the department
+// Virtual populate: all employees in department
 departmentSchema.virtual('employees', {
   ref: 'Employee',
   localField: '_id',
   foreignField: 'department_id',
 });
 
-// Virtual to get total count of employees in the department
+// Virtual populate: employee count
 departmentSchema.virtual('employee_count', {
   ref: 'Employee',
   localField: '_id',
@@ -89,10 +43,9 @@ departmentSchema.virtual('employee_count', {
   count: true,
 });
 
-// Unique indexes for database-level enforcement
+// Unique indexes
 departmentSchema.index({ name: 1 }, { unique: true });
 departmentSchema.index({ email: 1 }, { unique: true });
 
 const Department = mongoose.model('Department', departmentSchema);
-
 export default Department;

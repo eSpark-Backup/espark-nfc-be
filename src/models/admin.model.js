@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import validator from 'validator';
+import imageSchema from './shared/imageSchema.js';
+import { auditFields } from './shared/auditFields.js';
+import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
 const adminSchema = new mongoose.Schema(
   {
@@ -25,7 +28,7 @@ const adminSchema = new mongoose.Schema(
       required: [true, 'Phone number is required'],
       trim: true,
       validate: {
-        validator: (value) => validator.isMobilePhone(value, 'any'),
+        validator: (v) => validator.isMobilePhone(v, 'any'),
         message: 'Invalid phone number',
       },
     },
@@ -44,7 +47,7 @@ const adminSchema = new mongoose.Schema(
       type: String,
       enum: ['super-admin', 'admin'],
       default: 'admin',
-      immutable: true
+      immutable: true,
     },
     is_active: {
       type: Boolean,
@@ -55,61 +58,14 @@ const adminSchema = new mongoose.Schema(
       default: false,
       select: false,
     },
-    profile_image: {
-      image_key: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || typeof v === 'string',
-          message: 'Invalid image key',
-        },
-      },
-      image_url: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
-          message: 'Invalid image URL',
-        },
-      },
-    },
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      default: null,
-    },
-    updated_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      default: null,
-    },
+    profile_image: imageSchema,
+    ...auditFields,
     last_login: {
       type: Date,
       default: null,
     },
   },
-  {
-    timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-    toJSON: {
-      transform(doc, ret) {
-        delete ret.password;
-        delete ret.__v;
-        ret.id = ret._id;
-        delete ret._id;
-      },
-    },
-    toObject: {
-      transform(doc, ret) {
-        delete ret.password;
-        delete ret.__v;
-        ret.id = ret._id;
-        delete ret._id;
-      },
-    },
-  }
+  baseSchemaOptions
 );
 
 // Indexes
@@ -131,7 +87,7 @@ adminSchema.index(
   }
 );
 
-// Hash password before saving
+// Password hashing
 adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
@@ -139,20 +95,16 @@ adminSchema.pre('save', async function (next) {
   next();
 });
 
-// Hash password on update
 adminSchema.pre('findOneAndUpdate', async function (next) {
   const update = this.getUpdate();
   if (update?.password) {
     const salt = await bcrypt.genSalt(10);
     update.password = await bcrypt.hash(update.password, salt);
   }
-
-  // ✅ Ensure validation runs on updates
   this.setOptions({ runValidators: true });
   next();
 });
 
-// Compare passwords
 adminSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };

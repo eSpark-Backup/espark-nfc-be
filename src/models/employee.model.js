@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
+import imageSchema from './shared/imageSchema.js';
+import socialLinksSchema from './shared/socialLinksSchema.js';
+import { auditFields } from './shared/auditFields.js';
+import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
 const employeeSchema = new mongoose.Schema(
   {
@@ -48,106 +52,24 @@ const employeeSchema = new mongoose.Schema(
       required: [true, 'Address is required'],
       trim: true,
       minlength: [10, 'Address must be at least 10 characters'],
-      maxlength: [300, 'Address must not exceed 300 characters']
+      maxlength: [300, 'Address must not exceed 300 characters'],
     },
-    social_links: {
-      facebook: {
-        type: String,
-        default: '',
-        validate: {
-          validator: (v) => !v || validator.isURL(v),
-          message: 'Invalid Facebook URL',
-        },
-      },
-      twitter: {
-        type: String,
-        default: '',
-        validate: {
-          validator: (v) => !v || validator.isURL(v),
-          message: 'Invalid Twitter URL',
-        },
-      },
-      instagram: {
-        type: String,
-        default: '',
-        validate: {
-          validator: (v) => !v || validator.isURL(v),
-          message: 'Invalid Instagram URL',
-        },
-      },
-      youtube: {
-        type: String,
-        default: '',
-        validate: {
-          validator: (v) => !v || validator.isURL(v),
-          message: 'Invalid YouTube URL',
-        },
-      },
-    },
+    social_links: socialLinksSchema,
     about_me: {
       type: String,
       required: [true, 'About me is required'],
       trim: true,
-      maxlength: [500, 'About me must not exceed 500 characters']
+      maxlength: [500, 'About me must not exceed 500 characters'],
     },
-    profile_image: {
-      image_key: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || typeof v === 'string',
-          message: 'Invalid image key',
-        },
-      },
-      image_url: {
-        type: String,
-        default: null,
-        validate: {
-          validator: (v) => v === null || validator.isURL(v, { require_protocol: true }),
-          message: 'Invalid image URL',
-        },
-      },
-    },
+    profile_image: imageSchema,
     department_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',
       required: [true, 'Department is required'],
     },
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      required: true,
-    },
-    updated_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Admin',
-      required: true,
-    },
+    ...auditFields,
   },
-  {
-    timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-    toJSON: {
-      virtuals: true,
-      transform: function (doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-    toObject: {
-      virtuals: true,
-      transform: function (doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-  }
+  baseSchemaOptions
 );
 
 // Virtual populate: department info
@@ -158,10 +80,9 @@ employeeSchema.virtual('department', {
   justOne: true,
 });
 
-// Indexes for uniqueness
+// Indexes
 employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
 
 const Employee = mongoose.model('Employee', employeeSchema);
-
 export default Employee;
