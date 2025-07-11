@@ -5,6 +5,8 @@ import {
   getAdminById,
   updateAdmin,
   deleteAdmin,
+  changePassword,
+  resetPasswordBySuperAdmin,
 } from '../controllers/admin.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
 import isSuperAdmin from '../middlewares/isSuperAdmin.js';
@@ -14,11 +16,22 @@ import {
   validateCreateAdmin,
   validateUpdateAdmin,
   validateAdminId,
+  validateResetAdminPassword,
+  validateChangeOwnPassword,
 } from '../validators/admin.validator.js';
 
 const router = express.Router();
 
-// 🔐 Only super admin can access admin routes
+// 🔐 Allow logged-in admin to change their own password
+router.put(
+  '/change-password',
+  verifyToken,
+  validateChangeOwnPassword,
+  validateRequest,
+  changePassword
+);
+
+// 🔐 Only super admin can access admin management routes
 router.use(verifyToken, isSuperAdmin);
 
 // 📌 Create admin / Get all admins
@@ -31,7 +44,21 @@ router
 router
   .route('/:id')
   .get(validateAdminId, validateRequest, getAdminById)
-  .patch(validateAdminId, upload.single('profile_image'), validateUpdateAdmin, validateRequest, updateAdmin)
+  .patch(
+    validateAdminId,
+    upload.single('profile_image'),
+    validateUpdateAdmin,
+    validateRequest,
+    updateAdmin
+  )
   .delete(validateAdminId, validateRequest, deleteAdmin);
+
+// ✅ Reset admin password (super admin only)
+router.put(
+  '/:id/reset-password',
+  validateResetAdminPassword,
+  validateRequest,
+  resetPasswordBySuperAdmin
+);
 
 export default router;

@@ -206,3 +206,61 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
     message: 'Admin deleted successfully',
   });
 });
+
+// Admin changes their own password
+export const changePassword = asyncWrapper(async (req, res, next) => {
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return next(
+      new CustomError(HTTP_STATUS.BAD_REQUEST, 'Current and new passwords are required')
+    );
+  }
+
+  const admin = await Admin.findById(req.admin.id).select('+password');
+  if (!admin || admin.is_deleted) {
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Admin not found or unauthorized'));
+  }
+
+  const isMatch = await admin.comparePassword(current_password);
+  if (!isMatch) {
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Current password is incorrect'));
+  }
+
+  admin.password = new_password;
+  admin.updated_by = req.admin.id;
+  await admin.save();
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Password updated successfully',
+  });
+});
+
+// Super admin resets any admin's password
+export const resetPasswordBySuperAdmin = asyncWrapper(async (req, res, next) => {
+  const { id } = req.params;
+  const { new_password } = req.body;
+
+  if (!new_password) {
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'New password is required'));
+  }
+
+  const admin = await Admin.findOne({ _id: id, role: 'admin', is_deleted: false });
+  if (!admin) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
+  }
+
+  admin.password = new_password;
+  admin.updated_by = req.admin.id;
+  await admin.save();
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Admin password reset successfully',
+  });
+});
+
+
+
+
