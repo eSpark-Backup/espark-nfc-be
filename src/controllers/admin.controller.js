@@ -242,6 +242,12 @@ export const resetPasswordBySuperAdmin = asyncWrapper(async (req, res, next) => 
   const { id } = req.params;
   const { new_password } = req.body;
 
+  if (req.admin.id === id) {
+    return next(
+      new CustomError(HTTP_STATUS.BAD_REQUEST, 'You cannot reset your own password from this route')
+    );
+  }
+
   if (!new_password) {
     return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'New password is required'));
   }
