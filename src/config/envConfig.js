@@ -1,4 +1,14 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+
+// Optional: Warn if .env file is missing (useful in development)
+if (!fs.existsSync('.env')) {
+  console.warn(
+    '⚠️  .env file not found. Make sure environment variables are set manually or in deployment config.'
+  );
+}
+
+// Load environment variables
 dotenv.config();
 
 // Validate required environment variables
@@ -13,7 +23,7 @@ const requiredEnv = [
 
 requiredEnv.forEach((key) => {
   if (!process.env[key]) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    throw new Error(`❌ Missing required environment variable: ${key}`);
   }
 });
 
@@ -33,7 +43,7 @@ const envConfig = {
     secretKey: process.env.S3_SECRET_KEY,
     region: process.env.S3_REGION,
     bucket: process.env.S3_BUCKET,
-    endpoint: process.env.S3_ENDPOINT || null, // Optional: for localstack or custom S3-compatible services
+    endpoint: process.env.S3_ENDPOINT || null, // Optional for custom S3-compatible services
   },
 
   superAdmin: {

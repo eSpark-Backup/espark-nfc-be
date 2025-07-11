@@ -2,14 +2,17 @@ import envConfig from './config/envConfig.js';
 import connectDB from './db/connection.js';
 import app from './app.js';
 
-// Connect to MongoDB
-connectDB();
+// Start the server only after a successful DB connection
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(envConfig.port, () => {
+      console.log(`✅ Server is running on port ${envConfig.port} [${envConfig.nodeEnv}]`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to connect to MongoDB:', error.message);
+    process.exit(1); // Exit with failure code
+  }
+};
 
-app.get('/', (req, res) => {
-  res.send('Welcome to NFC Workforce Manager API');
-});
-
-// Start server
-app.listen(envConfig.port, () => {
-  console.log(`Server is running on port ${envConfig.port}`);
-});
+startServer();
