@@ -2,12 +2,9 @@ import Admin from '../models/admin.model.js';
 import asyncWrapper from '../utils/asyncWrapper.js';
 import CustomError from '../utils/customError.js';
 import HTTP_STATUS from '../constants/httpStatus.js';
-import {
-  attachPresignedImageUrl,
-  replaceImage,
-  removeImage,
-} from '../utils/imageHelper.js';
+import { attachPresignedImageUrl, replaceImage, removeImage } from '../utils/imageHelper.js';
 import { checkDuplicateAdmin } from '../utils/duplicateChecker.js';
+import applyQueryOptions from '../utils/queryHelper.js';
 
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
@@ -38,7 +35,6 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
 
   await admin.save();
   const savedAdmin = await Admin.findById(admin._id).select('-password');
-
   await attachPresignedImageUrl(savedAdmin);
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -174,7 +170,6 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
 
   admin.updated_by = req.admin?.id || null;
   await admin.save();
-
   await attachPresignedImageUrl(admin);
 
   res.status(HTTP_STATUS.OK).json({
