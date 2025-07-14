@@ -49,6 +49,14 @@ const envConfig = {
   superAdmin: {
     secret: process.env.SUPER_ADMIN_CREATION_SECRET,
   },
+  smtp: {
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+    from: process.env.EMAIL_FROM,
+    fromName: process.env.EMAIL_FROM_NAME || 'NFC Workforce Manager',
+  },
 };
 
 export default envConfig;

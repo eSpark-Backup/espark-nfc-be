@@ -91,6 +91,7 @@ const createSuperAdmin = async () => {
     const admin = new Admin({
       ...answers,
       role: 'super-admin',
+      email_verified: true, // ✅ Mark email as verified
     });
 
     await admin.save();

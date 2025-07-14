@@ -7,6 +7,8 @@ import {
   deleteAdmin,
   changePassword,
   resetPasswordBySuperAdmin,
+  sendEmailVerificationCode,
+  verifyEmailCode,
 } from '../controllers/admin.controller.js';
 import verifyToken from '../middlewares/authMiddleware.js';
 import isSuperAdmin from '../middlewares/isSuperAdmin.js';
@@ -21,6 +23,12 @@ import {
 } from '../validators/admin.validator.js';
 
 const router = express.Router();
+
+// ✅ Allow logged-in admin to resend verification code
+router.post('/send-email-verification', verifyToken, sendEmailVerificationCode);
+
+// ✅ Allow logged-in admin to verify email using code
+router.post('/verify-email', verifyToken, verifyEmailCode);
 
 // 🔐 Allow logged-in admin to change their own password
 router.put(

@@ -5,6 +5,8 @@ import HTTP_STATUS from '../constants/httpStatus.js';
 import { attachPresignedImageUrl, replaceImage, removeImage } from '../utils/imageHelper.js';
 import { checkDuplicateAdmin } from '../utils/duplicateChecker.js';
 import applyQueryOptions from '../utils/queryHelper.js';
+import crypto from 'crypto';
+import { sendVerificationEmail } from '../utils/emailHelper.js';
 
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
@@ -34,15 +36,31 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   }
 
   await admin.save();
+
+  // Generate and store verification code
+  const code = crypto.randomInt(100000, 999999).toString();
+  admin.email_verification_code = code;
+  admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  await admin.save();
+
+  // Send verification email
+  await sendVerificationEmail({
+    to: admin.email,
+    name: admin.full_name,
+    code,
+  });
+
   const savedAdmin = await Admin.findById(admin._id).select('-password');
   await attachPresignedImageUrl(savedAdmin);
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
-    message: 'Admin created successfully',
+    message:
+      'Admin created successfully. A verification code has been sent to your email. Please enter it to verify and continue.',
     admin: savedAdmin,
   });
 });
+
 
 // Get All Admins
 export const getAllAdmins = asyncWrapper(async (req, res) => {
@@ -266,6 +284,75 @@ export const resetPasswordBySuperAdmin = asyncWrapper(async (req, res, next) => 
     message: 'Admin password reset successfully',
   });
 });
+
+export const sendEmailVerificationCode = asyncWrapper(async (req, res, next) => {
+  const admin = await Admin.findById(req.admin.id).select(
+    '+email_verification_code +email_verification_expires'
+  );
+
+  if (!admin || admin.is_deleted) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
+  }
+
+  // Generate a 6-digit code
+  const code = crypto.randomInt(100000, 999999).toString();
+
+  admin.email_verification_code = code;
+  admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+  await admin.save();
+
+  await sendVerificationEmail({
+    to: admin.email,
+    name: admin.full_name,
+    code,
+  });
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Verification code sent to your email',
+  });
+});
+
+export const verifyEmailCode = asyncWrapper(async (req, res, next) => {
+  const { code } = req.body;
+
+  if (!code) {
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Verification code is required'));
+  }
+
+  const admin = await Admin.findById(req.admin.id).select(
+    '+email_verification_code +email_verification_expires'
+  );
+
+  if (!admin || admin.is_deleted) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
+  }
+
+  if (
+    !admin.email_verification_code ||
+    !admin.email_verification_expires ||
+    admin.email_verification_expires < new Date()
+  ) {
+    return next(
+      new CustomError(HTTP_STATUS.BAD_REQUEST, 'Verification code is expired or not sent')
+    );
+  }
+
+  if (admin.email_verification_code !== code) {
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid verification code'));
+  }
+
+  admin.email_verified = true;
+  admin.email_verification_code = null;
+  admin.email_verification_expires = null;
+  await admin.save();
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Email verified successfully',
+  });
+});
+
 
 
 

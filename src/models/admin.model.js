@@ -63,6 +63,21 @@ const adminSchema = new mongoose.Schema(
       select: false,
     },
     profile_image: imageSchema,
+    email_verified: {
+      type: Boolean,
+      default: false,
+    },
+
+    email_verification_code: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    email_verification_expires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
     ...auditFields,
     last_login: {
       type: Date,

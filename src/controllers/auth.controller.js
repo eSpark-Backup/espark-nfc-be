@@ -14,11 +14,12 @@ export const login = asyncWrapper(async (req, res, next) => {
   }
 
   const normalizedEmail = email.trim().toLowerCase();
+
   const admin = await Admin.findOne({
     email: normalizedEmail,
     is_deleted: false,
     is_active: true,
-  }).select('+password');
+  }).select('+password +email_verified');
 
   if (!admin) {
     return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
@@ -29,13 +30,35 @@ export const login = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
   }
 
+  await attachPresignedImageUrl(admin);
+
+  if (!admin.email_verified) {
+    const token = generateToken({ id: admin._id, role: admin.role }); // temporary token
+
+    await attachPresignedImageUrl(admin);
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: 'Please verify your email to continue.',
+      requires_verification: true,
+      token, // this enables verify-email
+      admin: {
+        id: admin._id,
+        full_name: admin.full_name,
+        email: admin.email,
+        email_verified: admin.email_verified,
+        phone_number: admin.phone_number,
+        role: admin.role,
+        image_url: admin.profile_image?.image_url || null,
+      },
+    });
+  }
+
   // Update last login timestamp
   admin.last_login = new Date();
   await admin.save();
 
   const token = generateToken({ id: admin._id, role: admin.role });
-
-  await attachPresignedImageUrl(admin);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -45,9 +68,11 @@ export const login = asyncWrapper(async (req, res, next) => {
       id: admin._id,
       full_name: admin.full_name,
       email: admin.email,
+      email_verified: admin.email_verified,
       phone_number: admin.phone_number,
       role: admin.role,
       image_url: admin.profile_image?.image_url || null,
     },
   });
 });
+
