@@ -12,7 +12,7 @@ export const validateLogin = [
       gmail_remove_dots: false,
       gmail_remove_subaddress: false,
       gmail_convert_googlemaildotcom: false,
-      all_lowercase: true, // Optional: keep emails lowercase (standard)
+      all_lowercase: true,
     }),
 
   body('password')

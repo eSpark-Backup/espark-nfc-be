@@ -1,6 +1,5 @@
 import { body, param } from 'express-validator';
 
-// ===== CREATE =====
 export const validateCreateDepartment = [
   body('name')
     .trim()
@@ -20,11 +19,9 @@ export const validateCreateDepartment = [
     .withMessage('Invalid email address'),
 ];
 
-// ===== UPDATE =====
 export const validateUpdateDepartment = [
   param('id').isMongoId().withMessage('Invalid department ID'),
 
-  // Custom check: at least one field must be provided
   (req, res, next) => {
     const updatableFields = ['name', 'email'];
     const hasValidField = updatableFields.some((field) => field in req.body);
@@ -57,5 +54,4 @@ export const validateUpdateDepartment = [
     .withMessage('Invalid email address'),
 ];
 
-// ===== PARAM ID VALIDATION =====
 export const validateDepartmentId = [param('id').isMongoId().withMessage('Invalid department ID')];

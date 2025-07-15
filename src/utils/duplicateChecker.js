@@ -1,5 +1,3 @@
-// utils/duplicateChecker.js
-
 export const checkDuplicateAdmin = async ({ email, phone_number, excludeId, Admin }) => {
   return Admin.findOne({
     $or: [...(email ? [{ email }] : []), ...(phone_number ? [{ phone_number }] : [])],

@@ -76,7 +76,6 @@ const employeeSchema = new mongoose.Schema(
   baseSchemaOptions
 );
 
-// Virtual populate: department info
 employeeSchema.virtual('department', {
   ref: 'Department',
   localField: 'department_id',
@@ -84,7 +83,6 @@ employeeSchema.virtual('department', {
   justOne: true,
 });
 
-// Indexes
 employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
 

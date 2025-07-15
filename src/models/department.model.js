@@ -28,14 +28,12 @@ const departmentSchema = new mongoose.Schema(
   baseSchemaOptions
 );
 
-// Virtual populate: all employees in department
 departmentSchema.virtual('employees', {
   ref: 'Employee',
   localField: '_id',
   foreignField: 'department_id',
 });
 
-// Virtual populate: employee count
 departmentSchema.virtual('employee_count', {
   ref: 'Employee',
   localField: '_id',
@@ -43,7 +41,6 @@ departmentSchema.virtual('employee_count', {
   count: true,
 });
 
-// Unique indexes
 departmentSchema.index({ name: 1 }, { unique: true });
 departmentSchema.index({ email: 1 }, { unique: true });
 

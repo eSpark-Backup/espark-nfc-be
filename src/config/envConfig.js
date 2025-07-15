@@ -4,7 +4,7 @@ import fs from 'fs';
 // Optional: Warn if .env file is missing (useful in development)
 if (!fs.existsSync('.env')) {
   console.warn(
-    '⚠️  .env file not found. Make sure environment variables are set manually or in deployment config.'
+    '.env file not found. Make sure environment variables are set manually or in deployment config.'
   );
 }
 
@@ -19,11 +19,18 @@ const requiredEnv = [
   'S3_SECRET_KEY',
   'S3_REGION',
   'S3_BUCKET',
+  'SUPER_ADMIN_CREATION_SECRET',
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'EMAIL_USER',
+  'EMAIL_PASS',
+  'EMAIL_FROM',
 ];
+
 
 requiredEnv.forEach((key) => {
   if (!process.env[key]) {
-    throw new Error(`❌ Missing required environment variable: ${key}`);
+    throw new Error(`Missing required environment variable: ${key}`);
   }
 });
 

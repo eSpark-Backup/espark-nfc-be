@@ -7,10 +7,10 @@ const startServer = async () => {
   try {
     await connectDB();
     app.listen(envConfig.port, () => {
-      console.log(`✅ Server is running on port ${envConfig.port} [${envConfig.nodeEnv}]`);
+      console.log(`Server is running on port ${envConfig.port} [${envConfig.nodeEnv}]`);
     });
   } catch (error) {
-    console.error('❌ Failed to connect to MongoDB:', error.message);
+    console.error('Failed to connect to MongoDB:', error.message);
     process.exit(1); // Exit with failure code
   }
 };

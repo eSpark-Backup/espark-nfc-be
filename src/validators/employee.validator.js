@@ -1,11 +1,8 @@
-// src/validators/employee.validator.js
-
 import { body, param } from 'express-validator';
 import mongoose from 'mongoose';
 
 const isValidObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
 
-// ------------------- Create Employee Validation -------------------
 export const validateCreateEmployee = [
   body('name')
     .trim()
@@ -68,7 +65,6 @@ export const validateCreateEmployee = [
     .isLength({ min: 10, max: 300 })
     .withMessage('Address must be between 10 and 300 characters'),
 
-  // Optional social links
   body('social_links.facebook')
     .optional({ checkFalsy: true })
     .trim()
@@ -98,7 +94,6 @@ export const validateCreateEmployee = [
     .withMessage('Invalid YouTube URL'),
 ];
 
-// ------------------- Update Employee Validation -------------------
 export const validateUpdateEmployee = [
   param('id').isMongoId().withMessage('Invalid employee ID'),
 
@@ -146,7 +141,11 @@ export const validateUpdateEmployee = [
     .toDate()
     .withMessage('Invalid joining date'),
 
-  body('designation').optional().trim().notEmpty().withMessage('Designation is required'),
+  body('designation')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Designation is required'),
 
   body('department_id')
     .optional()
@@ -171,7 +170,6 @@ export const validateUpdateEmployee = [
     .isLength({ min: 10, max: 300 })
     .withMessage('Address must be between 10 and 300 characters'),
 
-  // Optional social links
   body('social_links.facebook')
     .optional({ checkFalsy: true })
     .trim()
@@ -201,5 +199,4 @@ export const validateUpdateEmployee = [
     .withMessage('Invalid YouTube URL'),
 ];
 
-// ------------------- Validate Employee ID Only -------------------
 export const validateEmployeeId = [param('id').isMongoId().withMessage('Invalid employee ID')];

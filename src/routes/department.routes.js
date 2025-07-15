@@ -6,8 +6,8 @@ import {
   updateDepartment,
   deleteDepartment,
 } from '../controllers/department.controller.js';
-import verifyToken from '../middlewares/authMiddleware.js';
-import upload from '../middlewares/uploadMiddleware.js';
+import verifyToken from '../middlewares/verifyToken.js';
+import upload from '../middlewares/imageUpload.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateDepartment,
@@ -17,20 +17,21 @@ import {
 
 const router = express.Router();
 
-// 🔒 Apply authentication to all department routes
+// Apply authentication to all department routes
 router.use(verifyToken);
 
-// 📌 Create and get all departments
+// Create and get all departments
 router
   .route('/')
   .post(upload.single('image'), validateCreateDepartment, validateRequest, createDepartment)
   .get(getAllDepartments);
 
-// 📌 Get, update, delete department by ID
+// Get, update, and delete department by ID
 router
   .route('/:id')
   .get(validateDepartmentId, validateRequest, getDepartmentById)
   .patch(
+    validateDepartmentId,
     upload.single('image'),
     validateUpdateDepartment,
     validateRequest,

@@ -13,7 +13,7 @@ import { checkDuplicateDepartment } from '../utils/duplicateChecker.js';
 
 const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
-// =================== CREATE ===================
+// Create Department
 export const createDepartment = asyncWrapper(async (req, res, next) => {
   const { name, email } = req.body;
 
@@ -49,7 +49,7 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// =================== GET ALL ===================
+// Get All Departments
 export const getAllDepartments = asyncWrapper(async (req, res) => {
   const includeEmployees = req.query.include_employees === 'true';
 
@@ -83,7 +83,7 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   });
 });
 
-// =================== GET BY ID ===================
+// Get Department By ID
 export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const includeEmployees = req.query.include_employees === 'true';
@@ -115,7 +115,7 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// =================== UPDATE ===================
+// Update Department
 export const updateDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { name, email } = req.body;
@@ -190,7 +190,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// =================== DELETE ===================
+// Delete Department
 export const deleteDepartment = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 

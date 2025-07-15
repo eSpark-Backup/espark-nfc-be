@@ -28,7 +28,7 @@ const applyQueryOptions = async (
     }
   }
 
-  // Improved Sorting
+  // Sort
   let sortField = 'created_at';
   let sortOrder = -1; // Default to descending
 

@@ -11,7 +11,7 @@ import {
 } from '../utils/imageHelper.js';
 import { checkDuplicateEmployee } from '../utils/duplicateChecker.js';
 
-// =================== CREATE ===================
+// Create Employee
 export const createEmployee = asyncWrapper(async (req, res, next) => {
   const { email, phone_number, department_id, ...rest } = req.body;
 
@@ -54,7 +54,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// =================== GET ALL ===================
+// Get All Employees
 export const getEmployees = asyncWrapper(async (req, res) => {
   const baseQuery = Employee.find()
     .populate('created_by', 'full_name email')
@@ -78,7 +78,7 @@ export const getEmployees = asyncWrapper(async (req, res) => {
   });
 });
 
-// =================== GET BY ID ===================
+// Get Employee By ID
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
@@ -100,7 +100,7 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// =================== UPDATE ===================
+// Update Employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const {
@@ -204,7 +204,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// =================== DELETE ===================
+// Delete Employee
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 

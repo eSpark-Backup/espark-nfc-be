@@ -8,7 +8,7 @@ import {
   attachPresignedImageUrl,
 } from '../utils/imageHelper.js';
 
-// ======================== CREATE ========================
+// Create Company Profile
 export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
@@ -43,7 +43,7 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// ======================== GET ========================
+// Get Company Profile
 export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne()
     .populate('created_by', 'full_name email')
@@ -61,7 +61,7 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// ======================== UPDATE ========================
+// Update Company Profile
 export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   const { company_name, website_link, established, address, button_name, button_redirect_url } =
     req.body;
@@ -129,7 +129,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// ======================== DELETE ========================
+// Delete Company Profile
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {

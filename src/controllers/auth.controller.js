@@ -33,15 +33,15 @@ export const login = asyncWrapper(async (req, res, next) => {
   await attachPresignedImageUrl(admin);
 
   if (!admin.email_verified) {
-    const token = generateToken({ id: admin._id, role: admin.role }); // temporary token
+    const token = generateToken({ id: admin._id, role: admin.role });
 
     await attachPresignedImageUrl(admin);
 
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Please verify your email to continue.',
+      message: 'Please verify your email address to continue.',
       requires_verification: true,
-      token, // this enables verify-email
+      token,
       admin: {
         id: admin._id,
         full_name: admin.full_name,

@@ -8,7 +8,7 @@ const setupIndexes = async () => {
     await connectDB();
     console.log('🔗 Connected to DB');
 
-      await Admin.syncIndexes(); // applies your schema-defined indexes
+      await Admin.syncIndexes();
       await Department.syncIndexes();
       await Employee.syncIndexes();
     console.log('✅ Indexes synced successfully');

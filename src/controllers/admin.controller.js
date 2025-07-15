@@ -309,7 +309,7 @@ export const sendEmailVerificationCode = asyncWrapper(async (req, res, next) => 
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: 'Verification code sent to your email',
+    message: 'Verification code has been sent to your email, please check your inbox.',
   });
 });
 
@@ -343,6 +343,7 @@ export const verifyEmailCode = asyncWrapper(async (req, res, next) => {
   }
 
   admin.email_verified = true;
+  admin.verified_email_at = new Date();
   admin.email_verification_code = null;
   admin.email_verification_expires = null;
   await admin.save();
@@ -352,6 +353,10 @@ export const verifyEmailCode = asyncWrapper(async (req, res, next) => {
     message: 'Email verified successfully',
   });
 });
+
+
+
+
 
 
 

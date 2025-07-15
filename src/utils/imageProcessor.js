@@ -27,6 +27,6 @@ export const processImage = async (buffer) => {
       fit: sharp.fit.inside,
       withoutEnlargement: true,
     })
-    .toFormat('webp', { quality: 80 }) // You can use 'jpeg' or 'png' instead
+    .toFormat('webp', { quality: 80 })
     .toBuffer();
 };

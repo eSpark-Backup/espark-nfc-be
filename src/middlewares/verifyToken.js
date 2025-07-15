@@ -24,17 +24,17 @@ const verifyToken = asyncWrapper(async (req, res, next) => {
 
     req.admin = admin;
 
-    // ⛔ Block only unverified regular admins (not super-admins) from protected routes,
-    // except for verification routes
-    const allowedPaths = ['/api/admins/verify-email', '/api/admins/send-email-verification'];
+    // Allow unverified admins to access only email verification routes
+    const allowedPaths = ['/api/admins/send-email-verification', '/api/admins/verify-email'];
     const requestPath = req.originalUrl.split('?')[0];
     const isVerificationRoute = allowedPaths.some((path) => requestPath.endsWith(path));
 
+    // Block regular admins who haven't verified their email
     if (admin.role === 'admin' && !admin.email_verified && !isVerificationRoute) {
       return next(
         new CustomError(
           HTTP_STATUS.FORBIDDEN,
-          'Please verify your email before accessing this resource'
+          'Please verify your email address before accessing this resource'
         )
       );
     }

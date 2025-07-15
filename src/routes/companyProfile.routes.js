@@ -5,9 +5,9 @@ import {
   updateCompanyProfile,
   deleteCompanyProfile,
 } from '../controllers/companyProfile.controller.js';
-import verifyToken from '../middlewares/authMiddleware.js';
+import verifyToken from '../middlewares/verifyToken.js';
 import isSuperAdmin from '../middlewares/isSuperAdmin.js';
-import upload from '../middlewares/uploadMiddleware.js';
+import upload from '../middlewares/imageUpload.js';
 import validateRequest from '../middlewares/validateRequest.js';
 import {
   validateCreateCompanyProfile,
@@ -16,10 +16,10 @@ import {
 
 const router = express.Router();
 
-// 🔒 Only super admin can access company profile routes
+// Only super admin can access company profile routes
 router.use(verifyToken, isSuperAdmin);
 
-// 📌 All CRUD operations on the same '/' route
+// All CRUD operations on the same '/' route
 router
   .route('/')
   .post(

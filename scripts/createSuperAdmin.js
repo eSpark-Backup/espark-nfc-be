@@ -1,7 +1,6 @@
 import inquirer from 'inquirer';
 import mongoose from 'mongoose';
 import validator from 'validator';
-import bcrypt from 'bcryptjs';
 import Admin from '../src/models/admin.model.js';
 import connectDB from '../src/db/connection.js';
 import envConfig from '../src/config/envConfig.js';
@@ -91,7 +90,10 @@ const createSuperAdmin = async () => {
     const admin = new Admin({
       ...answers,
       role: 'super-admin',
-      email_verified: true, // ✅ Mark email as verified
+      email_verified: true,
+      verified_email_at: new Date(),
+      phone_verified: true,
+      verified_phone_at: new Date()
     });
 
     await admin.save();

@@ -78,6 +78,10 @@ const adminSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    verified_email_at: {
+      type: Date,
+      default: null,
+    },
     ...auditFields,
     last_login: {
       type: Date,
@@ -87,7 +91,6 @@ const adminSchema = new mongoose.Schema(
   baseSchemaOptions
 );
 
-// Indexes
 adminSchema.index(
   { email: 1 },
   {
@@ -106,7 +109,6 @@ adminSchema.index(
   }
 );
 
-// Password hashing
 adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
