@@ -14,6 +14,9 @@ import {
   validateUpdateEmployee,
   validateEmployeeId,
 } from '../validators/employee.validator.js';
+import verifyReenteredPassword from '../middlewares/verifyReenteredPassword.js';
+import requirePassword from '../middlewares/requirePassword.js';
+import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
 const router = express.Router();
 
@@ -37,6 +40,6 @@ router
     validateRequest,
     updateEmployee
   )
-  .delete(validateEmployeeId, validateRequest, deleteEmployee);
+  .delete(requirePassword, validateEmployeeId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteEmployee);
 
 export default router;

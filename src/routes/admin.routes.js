@@ -26,6 +26,9 @@ import {
   resetPasswordRateLimiter,
   changePasswordRateLimiter,
 } from '../middlewares/rateLimiters.js';
+import requirePassword from '../middlewares/requirePassword.js';
+import verifyReenteredPassword from '../middlewares/verifyReenteredPassword.js';
+import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
 const router = express.Router();
 
@@ -67,7 +70,7 @@ router
     validateRequest,
     updateAdmin
   )
-  .delete(validateAdminId, validateRequest, deleteAdmin);
+  .delete(requirePassword, validateAdminId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteAdmin);
 
 // Reset password for specific admin
 router

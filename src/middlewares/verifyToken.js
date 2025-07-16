@@ -16,7 +16,9 @@ const verifyToken = asyncWrapper(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, envConfig.jwt.secret);
-    const admin = await Admin.findById(decoded.id).select('-password');
+    const admin = await Admin.findById(decoded.id).select(
+      req.includePassword ? '+password' : '-password'
+    );
 
     if (!admin || admin.is_deleted || !admin.is_active) {
       return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Access denied'));

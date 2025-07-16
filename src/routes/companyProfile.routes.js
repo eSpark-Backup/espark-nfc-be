@@ -13,6 +13,9 @@ import {
   validateCreateCompanyProfile,
   validateUpdateCompanyProfile,
 } from '../validators/companyProfile.validator.js';
+import requirePassword from '../middlewares/requirePassword.js';
+import verifyReenteredPassword from '../middlewares/verifyReenteredPassword.js';
+import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
 const router = express.Router();
 
@@ -35,6 +38,6 @@ router
     validateRequest,
     updateCompanyProfile
   )
-  .delete(deleteCompanyProfile);
+  .delete(requirePassword, reenteredPasswordValidator, verifyReenteredPassword, deleteCompanyProfile);
 
 export default router;
