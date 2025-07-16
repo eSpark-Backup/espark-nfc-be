@@ -1,7 +1,7 @@
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
-const isSuperAdmin = (req, res, next) => {
+export const isSuperAdmin = (req, res, next) => {
   const admin = req.admin;
 
   if (!admin || admin.role !== 'super-admin' || !admin.email_verified) {
@@ -10,5 +10,3 @@ const isSuperAdmin = (req, res, next) => {
 
   next();
 };
-
-export default isSuperAdmin;

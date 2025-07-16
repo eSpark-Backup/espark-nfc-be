@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import envConfig from '../config/envConfig.js';
+import { envConfig } from '../config/envConfig.js';
 
-const connectDB = async () => {
+export const connectDB = async () => {
   try {
     const conn = await mongoose.connect(envConfig.mongoUri);
 
@@ -11,5 +11,3 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-
-export default connectDB;

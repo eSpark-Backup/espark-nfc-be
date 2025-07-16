@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
-import imageSchema from './shared/imageSchema.js';
-import socialLinksSchema from './shared/socialLinksSchema.js';
+import { imageSchema } from './shared/imageSchema.js';
+import { socialLinksSchema } from './shared/socialLinksSchema.js';
 import { auditFields } from './shared/auditFields.js';
 import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
@@ -86,5 +86,4 @@ employeeSchema.virtual('department', {
 employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
 
-const Employee = mongoose.model('Employee', employeeSchema);
-export default Employee;
+export const Employee = mongoose.model('Employee', employeeSchema);

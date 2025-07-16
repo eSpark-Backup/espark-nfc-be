@@ -1,8 +1,8 @@
 import AWS from 'aws-sdk';
 import path from 'path';
-import envConfig from '../config/envConfig.js';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { envConfig } from '../config/envConfig.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
 const s3 = new AWS.S3({
   region: envConfig.s3.region,

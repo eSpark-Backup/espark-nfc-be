@@ -1,6 +1,6 @@
-import envConfig from './config/envConfig.js';
-import connectDB from './db/connection.js';
-import app from './app.js';
+import { envConfig } from './config/envConfig.js';
+import { connectDB } from './db/connection.js';
+import { app } from './app.js';
 
 // Start the server only after a successful DB connection
 const startServer = async () => {

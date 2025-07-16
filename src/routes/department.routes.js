@@ -6,31 +6,31 @@ import {
   updateDepartment,
   deleteDepartment,
 } from '../controllers/department.controller.js';
-import verifyToken from '../middlewares/verifyToken.js';
-import upload from '../middlewares/imageUpload.js';
-import validateRequest from '../middlewares/validateRequest.js';
+import { verifyToken } from '../middlewares/verifyToken.js';
+import { upload } from '../middlewares/imageUpload.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
 import {
   validateCreateDepartment,
   validateUpdateDepartment,
   validateDepartmentId,
 } from '../validators/department.validator.js';
-import verifyReenteredPassword from '../middlewares/verifyReenteredPassword.js';
-import requirePassword from '../middlewares/requirePassword.js';
+import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
+import { requirePassword } from '../middlewares/requirePassword.js';
 import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
-const router = express.Router();
+export const departmentRoutes = express.Router();
 
 // Apply authentication to all department routes
-router.use(verifyToken);
+departmentRoutes.use(verifyToken);
 
 // Create and get all departments
-router
+departmentRoutes
   .route('/')
   .post(upload.single('image'), validateCreateDepartment, validateRequest, createDepartment)
   .get(getAllDepartments);
 
 // Get, update, and delete department by ID
-router
+departmentRoutes
   .route('/:id')
   .get(validateDepartmentId, validateRequest, getDepartmentById)
   .patch(
@@ -41,5 +41,3 @@ router
     updateDepartment
   )
   .delete(requirePassword, validateDepartmentId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteDepartment);
-
-export default router;

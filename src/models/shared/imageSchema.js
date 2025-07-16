@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
 
-const imageSchema = new mongoose.Schema(
+export const imageSchema = new mongoose.Schema(
   {
     image_key: {
       type: String,
@@ -22,5 +22,3 @@ const imageSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
-export default imageSchema;

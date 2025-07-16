@@ -1,8 +1,8 @@
 import { validationResult } from 'express-validator';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
-const validateRequest = (req, res, next) => {
+export const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -16,5 +16,3 @@ const validateRequest = (req, res, next) => {
 
   next();
 };
-
-export default validateRequest;

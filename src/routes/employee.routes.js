@@ -6,31 +6,31 @@ import {
   updateEmployee,
   deleteEmployee,
 } from '../controllers/employee.controller.js';
-import validateRequest from '../middlewares/validateRequest.js';
-import verifyToken from '../middlewares/verifyToken.js';
-import upload from '../middlewares/imageUpload.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { verifyToken } from '../middlewares/verifyToken.js';
+import { upload } from '../middlewares/imageUpload.js';
 import {
   validateCreateEmployee,
   validateUpdateEmployee,
   validateEmployeeId,
 } from '../validators/employee.validator.js';
-import verifyReenteredPassword from '../middlewares/verifyReenteredPassword.js';
-import requirePassword from '../middlewares/requirePassword.js';
+import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
+import { requirePassword } from '../middlewares/requirePassword.js';
 import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
-const router = express.Router();
+export const employeeRoutes = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(verifyToken);
+employeeRoutes.use(verifyToken);
 
 // Create and get all employees
-router
+employeeRoutes
   .route('/')
   .post(upload.single('profile_image'), validateCreateEmployee, validateRequest, createEmployee)
   .get(getEmployees);
 
 // Get, update, and delete employee by ID
-router
+employeeRoutes
   .route('/:id')
   .get(validateEmployeeId, validateRequest, getEmployeeById)
   .patch(
@@ -41,5 +41,3 @@ router
     updateEmployee
   )
   .delete(requirePassword, validateEmployeeId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteEmployee);
-
-export default router;

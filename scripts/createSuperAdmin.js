@@ -11,22 +11,22 @@ const createSuperAdmin = async () => {
 
     const existingSuperAdmin = await Admin.findOne({ role: 'super-admin' });
     if (existingSuperAdmin) {
-      console.log('\n❌ A super-admin already exists. Creation aborted.');
+      console.log('\nA super-admin already exists. Creation aborted.');
       return mongoose.connection.close();
     }
 
-    const { secret } = await inquirer.prompt([
+    await inquirer.prompt([
       {
         type: 'password',
         name: 'secret',
         message: '\nEnter super admin creation secret:',
         mask: '*',
         validate: (input) =>
-          input === envConfig.superAdmin.secret || '❌ Invalid secret. Access denied.',
+          input === envConfig.superAdmin.secret || 'Invalid secret. Access denied.',
       },
     ]);
 
-    console.log('\n🛠️  Super Admin Creation Wizard\n');
+    console.log('\nSuper Admin Creation Wizard\n');
 
     const answers = await inquirer.prompt([
       {
@@ -83,7 +83,7 @@ const createSuperAdmin = async () => {
     });
 
     if (existing) {
-      console.log('❌ An admin with this email or phone number already exists.');
+      console.log('An admin with this email or phone number already exists.');
       return mongoose.connection.close();
     }
 
@@ -91,15 +91,13 @@ const createSuperAdmin = async () => {
       ...answers,
       role: 'super-admin',
       email_verified: true,
-      verified_email_at: new Date(),
-      phone_verified: true,
-      verified_phone_at: new Date()
+      verified_email_at: new Date()
     });
 
     await admin.save();
-    console.log('\n✅ Super admin created successfully!\n');
+    console.log('\nSuper admin created successfully!\n');
   } catch (err) {
-    console.error('\n❌ Error creating super admin:', err.message);
+    console.error('\nError creating super admin:', err.message);
   } finally {
     mongoose.connection.close();
   }

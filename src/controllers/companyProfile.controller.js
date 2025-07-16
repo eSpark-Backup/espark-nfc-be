@@ -1,7 +1,7 @@
-import CompanyProfile from '../models/companyProfile.model.js';
-import asyncWrapper from '../utils/asyncWrapper.js';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { CompanyProfile } from '../models/companyProfile.model.js';
+import { asyncWrapper } from '../utils/asyncWrapper.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 import {
   replaceImage,
   removeImage,

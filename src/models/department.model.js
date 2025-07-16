@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
-import imageSchema from './shared/imageSchema.js';
+import { imageSchema } from './shared/imageSchema.js';
 import { auditFields } from './shared/auditFields.js';
 import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
@@ -44,5 +44,4 @@ departmentSchema.virtual('employee_count', {
 departmentSchema.index({ name: 1 }, { unique: true });
 departmentSchema.index({ email: 1 }, { unique: true });
 
-const Department = mongoose.model('Department', departmentSchema);
-export default Department;
+export const Department = mongoose.model('Department', departmentSchema);

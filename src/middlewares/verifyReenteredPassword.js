@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
-const verifyReenteredPassword = async (req, res, next) => {
+export const verifyReenteredPassword = async (req, res, next) => {
   try {
     const { password } = req.body;
 
@@ -30,5 +30,3 @@ const verifyReenteredPassword = async (req, res, next) => {
     next(err);
   }
 };
-
-export default verifyReenteredPassword;

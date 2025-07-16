@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
-import imageSchema from './shared/imageSchema.js';
+import { imageSchema } from './shared/imageSchema.js';
 import { auditFields } from './shared/auditFields.js';
 import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
@@ -49,5 +49,4 @@ const companyProfileSchema = new mongoose.Schema(
   baseSchemaOptions
 );
 
-const CompanyProfile = mongoose.model('CompanyProfile', companyProfileSchema);
-export default CompanyProfile;
+export const CompanyProfile = mongoose.model('CompanyProfile', companyProfileSchema);

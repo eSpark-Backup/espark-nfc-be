@@ -1,9 +1,9 @@
-import Employee from '../models/employee.model.js';
-import Department from '../models/department.model.js';
-import asyncWrapper from '../utils/asyncWrapper.js';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
-import applyQueryOptions from '../utils/queryHelper.js';
+import { Employee } from '../models/employee.model.js';
+import { Department } from '../models/department.model.js';
+import { asyncWrapper } from '../utils/asyncWrapper.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
+import { applyQueryOptions } from '../utils/queryHelper.js';
 import {
   replaceImage,
   removeImage,

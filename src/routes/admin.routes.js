@@ -10,10 +10,10 @@ import {
   sendEmailVerificationCode,
   verifyEmailCode,
 } from '../controllers/admin.controller.js';
-import verifyToken from '../middlewares/verifyToken.js';
-import isSuperAdmin from '../middlewares/isSuperAdmin.js';
-import validateRequest from '../middlewares/validateRequest.js';
-import upload from '../middlewares/imageUpload.js';
+import { verifyToken } from '../middlewares/verifyToken.js';
+import { isSuperAdmin } from '../middlewares/isSuperAdmin.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { upload } from '../middlewares/imageUpload.js';
 import {
   validateCreateAdmin,
   validateUpdateAdmin,
@@ -26,21 +26,21 @@ import {
   resetPasswordRateLimiter,
   changePasswordRateLimiter,
 } from '../middlewares/rateLimiters.js';
-import requirePassword from '../middlewares/requirePassword.js';
-import verifyReenteredPassword from '../middlewares/verifyReenteredPassword.js';
+import { requirePassword } from '../middlewares/requirePassword.js';
+import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
 import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
-const router = express.Router();
+export const adminRoutes = express.Router();
 
 // Public for logged-in admin: Email verification
-router
+adminRoutes
   .route('/send-email-verification')
   .post(verifyToken, emailVerificationRateLimiter, sendEmailVerificationCode);
 
-router.route('/verify-email').post(verifyToken, verifyEmailCode);
+adminRoutes.route('/verify-email').post(verifyToken, verifyEmailCode);
 
 // Logged-in admin: Change own password
-router
+adminRoutes
   .route('/change-password')
   .put(
     verifyToken,
@@ -51,16 +51,16 @@ router
   );
 
 // Super admin-only routes
-router.use(verifyToken, isSuperAdmin);
+adminRoutes.use(verifyToken, isSuperAdmin);
 
 // Create admin / Get all admins
-router
+adminRoutes
   .route('/')
   .post(upload.single('profile_image'), validateCreateAdmin, validateRequest, createAdmin)
   .get(getAllAdmins);
 
 // Get / Update / Delete specific admin by ID
-router
+adminRoutes
   .route('/:id')
   .get(validateAdminId, validateRequest, getAdminById)
   .patch(
@@ -73,13 +73,12 @@ router
   .delete(requirePassword, validateAdminId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteAdmin);
 
 // Reset password for specific admin
-router
+adminRoutes
   .route('/:id/reset-password')
   .put(
     resetPasswordRateLimiter,
     validateResetAdminPassword,
     validateRequest,
     resetPasswordBySuperAdmin
-  );
-
-export default router;
+);
+  

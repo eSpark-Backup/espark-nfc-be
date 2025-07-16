@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
-import envConfig from '../config/envConfig.js';
-import asyncWrapper from '../utils/asyncWrapper.js';
-import CustomError from '../utils/customError.js';
-import Admin from '../models/admin.model.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { envConfig } from '../config/envConfig.js';
+import { asyncWrapper } from '../utils/asyncWrapper.js';
+import { CustomError } from '../utils/customError.js';
+import { Admin } from '../models/admin.model.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
-const verifyToken = asyncWrapper(async (req, res, next) => {
+export const verifyToken = asyncWrapper(async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -46,5 +46,3 @@ const verifyToken = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid or expired token'));
   }
 });
-
-export default verifyToken;

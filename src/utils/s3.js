@@ -1,9 +1,9 @@
 import AWS from 'aws-sdk';
-import envConfig from '../config/envConfig.js';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { envConfig } from '../config/envConfig.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 
-const s3 = new AWS.S3({
+export const s3 = new AWS.S3({
   region: envConfig.s3.region,
   endpoint: envConfig.s3.endpoint,
   accessKeyId: envConfig.s3.accessKey,
@@ -35,5 +35,3 @@ export const generatePresignedUrl = async (key, expiresIn = 60 * 60) => {
     throw new CustomError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Failed to generate presigned URL');
   }
 };
-
-export default s3;

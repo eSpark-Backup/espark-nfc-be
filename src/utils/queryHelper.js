@@ -7,7 +7,7 @@
  * @param {Array} sortableFields - Optional: restrict sort_by to allowed fields
  * @returns {Promise<{ results: any[], pagination: object }>} formatted results and meta
  */
-const applyQueryOptions = async (
+export const applyQueryOptions = async (
   model,
   query,
   queryParams = {},
@@ -39,10 +39,7 @@ const applyQueryOptions = async (
     sortField = queryParams.sort_by;
   }
 
-  if (
-    queryParams.sort_order &&
-    String(queryParams.sort_order).toLowerCase() === 'asc'
-  ) {
+  if (queryParams.sort_order && String(queryParams.sort_order).toLowerCase() === 'asc') {
     sortOrder = 1;
   }
 
@@ -51,10 +48,7 @@ const applyQueryOptions = async (
   // Pagination
   query.skip(skip).limit(limit);
 
-  const [results, totalCount] = await Promise.all([
-    query,
-    model.countDocuments(query.getQuery()),
-  ]);
+  const [results, totalCount] = await Promise.all([query, model.countDocuments(query.getQuery())]);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -68,5 +62,3 @@ const applyQueryOptions = async (
     },
   };
 };
-
-export default applyQueryOptions;

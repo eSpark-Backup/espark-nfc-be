@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
 
-const socialLinksSchema = new mongoose.Schema(
+export const socialLinksSchema = new mongoose.Schema(
   {
     facebook: {
       type: String,
@@ -38,5 +38,3 @@ const socialLinksSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
-export default socialLinksSchema;

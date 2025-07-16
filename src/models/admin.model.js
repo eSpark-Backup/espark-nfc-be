@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import validator from 'validator';
-import imageSchema from './shared/imageSchema.js';
+import { imageSchema } from './shared/imageSchema.js';
 import { auditFields } from './shared/auditFields.js';
 import { baseSchemaOptions } from './shared/baseSchemaOptions.js';
 
@@ -130,5 +130,4 @@ adminSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const Admin = mongoose.model('Admin', adminSchema);
-export default Admin;
+export const Admin = mongoose.model('Admin', adminSchema);

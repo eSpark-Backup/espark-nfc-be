@@ -1,7 +1,7 @@
-import Admin from '../models/admin.model.js';
-import asyncWrapper from '../utils/asyncWrapper.js';
-import CustomError from '../utils/customError.js';
-import HTTP_STATUS from '../constants/httpStatus.js';
+import { Admin } from '../models/admin.model.js';
+import { asyncWrapper } from '../utils/asyncWrapper.js';
+import { CustomError } from '../utils/customError.js';
+import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { generateToken } from '../utils/token.js';
 import bcrypt from 'bcryptjs';
 import { attachPresignedImageUrl } from '../utils/imageHelper.js';

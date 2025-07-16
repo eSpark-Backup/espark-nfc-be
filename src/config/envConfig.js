@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 
-// Optional: Warn if .env file is missing (useful in development)
 if (!fs.existsSync('.env')) {
   console.warn(
     '.env file not found. Make sure environment variables are set manually or in deployment config.'
@@ -34,7 +33,7 @@ requiredEnv.forEach((key) => {
   }
 });
 
-const envConfig = {
+export const envConfig = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
 
@@ -50,7 +49,7 @@ const envConfig = {
     secretKey: process.env.S3_SECRET_KEY,
     region: process.env.S3_REGION,
     bucket: process.env.S3_BUCKET,
-    endpoint: process.env.S3_ENDPOINT || null, // Optional for custom S3-compatible services
+    endpoint: process.env.S3_ENDPOINT || null
   },
 
   superAdmin: {
@@ -65,5 +64,3 @@ const envConfig = {
     fromName: process.env.EMAIL_FROM_NAME || 'NFC Workforce Manager',
   },
 };
-
-export default envConfig;

@@ -2,15 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import errorHandler from './middlewares/errorHandler.js';
-import adminRoutes from './routes/admin.routes.js';
-import departmentRoutes from './routes/department.routes.js';
-import employeeRoutes from './routes/employee.routes.js';
-import companyProfileRoutes from './routes/companyProfile.routes.js';
-import authRoutes from './routes/auth.routes.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+import { adminRoutes } from './routes/admin.routes.js';
+import { departmentRoutes } from './routes/department.routes.js';
+import { employeeRoutes } from './routes/employee.routes.js';
+import { companyProfileRoutes } from './routes/companyProfile.routes.js';
+import { authRoutes } from './routes/auth.routes.js';
 import { globalRateLimiter } from './middlewares/rateLimiters.js';
 
-const app = express();
+export const app = express();
 
 // Core Middlewares
 app.use(cors());
@@ -39,5 +39,3 @@ app.use((req, res, next) => {
 
 // Global Error Handler
 app.use(errorHandler);
-
-export default app;
