@@ -9,6 +9,8 @@ import {
   resetPasswordBySuperAdmin,
   sendEmailVerificationCode,
   verifyEmailCode,
+  restoreAdmin,
+  getDeletedAdmins,
 } from '../controllers/admin.controller.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 import { isSuperAdmin } from '../middlewares/isSuperAdmin.js';
@@ -59,6 +61,9 @@ adminRoutes
   .post(upload.single('profile_image'), validateCreateAdmin, validateRequest, createAdmin)
   .get(getAllAdmins);
 
+// Get deleted admins
+adminRoutes.route('/deleted').get(getDeletedAdmins);
+  
 // Get / Update / Delete specific admin by ID
 adminRoutes
   .route('/:id')
@@ -70,7 +75,14 @@ adminRoutes
     validateRequest,
     updateAdmin
   )
-  .delete(requirePassword, validateAdminId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteAdmin);
+  .delete(
+    requirePassword,
+    validateAdminId,
+    reenteredPasswordValidator,
+    validateRequest,
+    verifyReenteredPassword,
+    deleteAdmin
+  );
 
 // Reset password for specific admin
 adminRoutes
@@ -80,5 +92,6 @@ adminRoutes
     validateResetAdminPassword,
     validateRequest,
     resetPasswordBySuperAdmin
-);
-  
+  );
+
+adminRoutes.route('/:id/restore').put(validateAdminId, validateRequest, restoreAdmin);

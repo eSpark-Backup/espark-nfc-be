@@ -29,7 +29,7 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     address,
     button_name,
     button_redirect_url,
-    created_by: req.user.id,
+    created_by: req.admin.id,
   });
 
   await replaceImage(companyProfile, req.file.buffer, 'company-profile');
@@ -118,7 +118,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  companyProfile.updated_by = req.user.id;
+  companyProfile.updated_by = req.admin.id;
   await companyProfile.save();
   await attachPresignedImageUrl(companyProfile);
 

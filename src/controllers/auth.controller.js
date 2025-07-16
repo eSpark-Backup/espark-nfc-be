@@ -5,6 +5,7 @@ import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { generateToken } from '../utils/token.js';
 import bcrypt from 'bcryptjs';
 import { attachPresignedImageUrl } from '../utils/imageHelper.js';
+import { formatAdminResponse } from '../utils/formatAdminResponse.js';
 
 export const login = asyncWrapper(async (req, res, next) => {
   const { email, password } = req.body;
@@ -15,64 +16,45 @@ export const login = asyncWrapper(async (req, res, next) => {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const admin = await Admin.findOne({
-    email: normalizedEmail,
-    is_deleted: false,
-    is_active: true,
-  }).select('+password +email_verified');
+  const admin = await Admin.findOne({ email: normalizedEmail }).select('+password +email_verified');
 
   if (!admin) {
-    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Your email address or password is incorrect, please try again'));
+  }
+
+  if (admin.is_deleted) {
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Your account has been deactivated, please contact support'));
   }
 
   const isMatch = await bcrypt.compare(password, admin.password);
   if (!isMatch) {
-    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Invalid credentials'));
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Your email address or password is incorrect, please try again'));
   }
 
-  await attachPresignedImageUrl(admin);
+  const includeImage = admin.role !== 'super-admin';
+  if (includeImage) {
+    await attachPresignedImageUrl(admin);
+  }
+
+  const token = generateToken({ id: admin._id, role: admin.role });
 
   if (!admin.email_verified) {
-    const token = generateToken({ id: admin._id, role: admin.role });
-
-    await attachPresignedImageUrl(admin);
-
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Please verify your email address to continue.',
       requires_verification: true,
       token,
-      admin: {
-        id: admin._id,
-        full_name: admin.full_name,
-        email: admin.email,
-        email_verified: admin.email_verified,
-        phone_number: admin.phone_number,
-        role: admin.role,
-        image_url: admin.profile_image?.image_url || null,
-      },
+      admin: formatAdminResponse(admin, includeImage),
     });
   }
 
-  // Update last login timestamp
   admin.last_login = new Date();
   await admin.save();
-
-  const token = generateToken({ id: admin._id, role: admin.role });
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Login successful',
     token,
-    admin: {
-      id: admin._id,
-      full_name: admin.full_name,
-      email: admin.email,
-      email_verified: admin.email_verified,
-      phone_number: admin.phone_number,
-      role: admin.role,
-      image_url: admin.profile_image?.image_url || null,
-    },
+    admin: formatAdminResponse(admin, includeImage),
   });
 });
-

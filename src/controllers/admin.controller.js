@@ -6,7 +6,7 @@ import { attachPresignedImageUrl, replaceImage, removeImage } from '../utils/ima
 import { checkDuplicateAdmin } from '../utils/duplicateChecker.js';
 import { applyQueryOptions } from '../utils/queryHelper.js';
 import crypto from 'crypto';
-import { sendVerificationEmail } from '../utils/emailHelper.js';
+import { sendVerificationEmail, sendAdminRestorationEmail, sendAdminDeletionEmail } from '../utils/emailHelper.js';
 
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
@@ -37,13 +37,11 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
 
   await admin.save();
 
-  // Generate and store verification code
   const code = crypto.randomInt(100000, 999999).toString();
   admin.email_verification_code = code;
-  admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000);
   await admin.save();
 
-  // Send verification email
   await sendVerificationEmail({
     to: admin.email,
     name: admin.full_name,
@@ -56,11 +54,10 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
     message:
-      'Admin created successfully. A verification code has been sent to your email. Please enter it to verify and continue.',
+      'Admin created successfully. A verification code has been sent to the provided email address. Please enter the code to verify your account',
     admin: savedAdmin,
   });
 });
-
 
 // Get All Admins
 export const getAllAdmins = asyncWrapper(async (req, res) => {
@@ -168,7 +165,19 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   }
 
   if (emailChanged) {
+    const newCode = crypto.randomInt(100000, 999999).toString();
+
     admin.email = email;
+    admin.email_verified = false;
+    admin.email_verification_code = newCode;
+    admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await sendVerificationEmail({
+      to: email,
+      name: admin.full_name,
+      code: newCode,
+    });
+
     updated = true;
   }
 
@@ -192,7 +201,9 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: 'Admin updated successfully',
+    message: emailChanged
+      ? 'Admin updated successfully. A verification code has been sent to the new email address. Verify it to continue using the system.'
+      : 'Admin updated successfully',
     admin,
   });
 });
@@ -219,20 +230,59 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   admin.updated_by = req.admin?.id || null;
   await admin.save();
 
+  await sendAdminDeletionEmail({
+    to: admin.email,
+    name: admin.full_name,
+  });
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Admin deleted successfully',
   });
 });
 
-// Admin changes their own password
+
+// Restore Admin
+export const restoreAdmin = asyncWrapper(async (req, res, next) => {
+  const { id } = req.params;
+
+  const admin = await Admin.findById(id);
+  if (!admin || admin.role !== 'admin') {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
+  }
+
+  if (!admin.is_deleted) {
+    return next(
+      new CustomError(HTTP_STATUS.BAD_REQUEST, 'This admin is already active or not deleted')
+    );
+  }
+
+  admin.is_deleted = false;
+  admin.is_active = true;
+  admin.updated_by = req.admin?.id || null;
+  await admin.save();
+
+  await sendAdminRestorationEmail({
+    to: admin.email,
+    name: admin.full_name,
+  });
+
+  await attachPresignedImageUrl(admin);
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Admin restored successfully',
+    admin,
+  });
+});
+
+
+// Change Password
 export const changePassword = asyncWrapper(async (req, res, next) => {
   const { current_password, new_password } = req.body;
 
   if (!current_password || !new_password) {
-    return next(
-      new CustomError(HTTP_STATUS.BAD_REQUEST, 'Current and new passwords are required')
-    );
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Passwords are required'));
   }
 
   const admin = await Admin.findById(req.admin.id).select('+password');
@@ -255,7 +305,7 @@ export const changePassword = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Super admin resets any admin's password
+// Reset Password by Super Admin
 export const resetPasswordBySuperAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { new_password } = req.body;
@@ -285,6 +335,7 @@ export const resetPasswordBySuperAdmin = asyncWrapper(async (req, res, next) => 
   });
 });
 
+// Send Email Verification Code
 export const sendEmailVerificationCode = asyncWrapper(async (req, res, next) => {
   const admin = await Admin.findById(req.admin.id).select(
     '+email_verification_code +email_verification_expires'
@@ -294,11 +345,10 @@ export const sendEmailVerificationCode = asyncWrapper(async (req, res, next) => 
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  // Generate a 6-digit code
   const code = crypto.randomInt(100000, 999999).toString();
 
   admin.email_verification_code = code;
-  admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+  admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000);
   await admin.save();
 
   await sendVerificationEmail({
@@ -313,6 +363,7 @@ export const sendEmailVerificationCode = asyncWrapper(async (req, res, next) => 
   });
 });
 
+// Verify Email Code
 export const verifyEmailCode = asyncWrapper(async (req, res, next) => {
   const { code } = req.body;
 
@@ -354,11 +405,29 @@ export const verifyEmailCode = asyncWrapper(async (req, res, next) => {
   });
 });
 
+export const getDeletedAdmins = asyncWrapper(async (req, res) => {
+  const baseQuery = Admin.find({ role: 'admin', is_deleted: true })
+    .select('-password')
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
 
+  const { results: admins, pagination } = await applyQueryOptions(
+    Admin,
+    baseQuery,
+    req.query,
+    ['full_name', 'email', 'phone_number'],
+    ['full_name', 'email', 'created_at']
+  );
 
+  for (const admin of admins) {
+    await attachPresignedImageUrl(admin);
+  }
 
-
-
-
-
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: admins.length ? 'Deleted admins fetched successfully' : 'No deleted admins found',
+    admins,
+    pagination,
+  });
+});
 

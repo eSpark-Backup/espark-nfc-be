@@ -11,8 +11,17 @@ const adminSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Full name is required'],
       trim: true,
+      minlength: [3, 'Full name must be at least 3 characters long'],
       maxlength: [100, 'Full name must not exceed 100 characters'],
+      validate: {
+        validator: function (value) {
+          return /^[A-Za-z][A-Za-z0-9\s]*$/.test(value);
+        },
+        message:
+          'Full name must start with a letter and can include letters, numbers, and spaces',
+      },
     },
+
     email: {
       type: String,
       required: [true, 'Email is required'],

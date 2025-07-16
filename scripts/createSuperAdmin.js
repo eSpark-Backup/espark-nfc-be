@@ -1,9 +1,43 @@
 import inquirer from 'inquirer';
 import mongoose from 'mongoose';
 import validator from 'validator';
-import Admin from '../src/models/admin.model.js';
-import connectDB from '../src/db/connection.js';
-import envConfig from '../src/config/envConfig.js';
+import crypto from 'crypto';
+
+import { Admin } from '../src/models/admin.model.js';
+import { connectDB } from '../src/db/connection.js';
+import { envConfig } from '../src/config/envConfig.js';
+
+const promptForSecret = async (expectedSecret) => {
+  let attempts = 0;
+
+  while (attempts < 3) {
+    const { secret } = await inquirer.prompt([
+      {
+        type: 'password',
+        name: 'secret',
+        message: `\nEnter super admin creation secret:`,
+        mask: '*',
+        validate: (input) => {
+          if (!input.trim()) return 'Secret is required';
+          return true;
+        },
+      },
+    ]);
+
+    const entered = Buffer.from(secret);
+    const actual = Buffer.from(expectedSecret);
+
+    if (entered.length === actual.length && crypto.timingSafeEqual(entered, actual)) {
+      return true;
+    }
+
+    console.log('Invalid secret. Try again.');
+    attempts++;
+  }
+
+  console.log('\nToo many failed attempts. Access denied.');
+  return false;
+};
 
 const createSuperAdmin = async () => {
   try {
@@ -15,18 +49,10 @@ const createSuperAdmin = async () => {
       return mongoose.connection.close();
     }
 
-    await inquirer.prompt([
-      {
-        type: 'password',
-        name: 'secret',
-        message: '\nEnter super admin creation secret:',
-        mask: '*',
-        validate: (input) =>
-          input === envConfig.superAdmin.secret || 'Invalid secret. Access denied.',
-      },
-    ]);
+    const secretPassed = await promptForSecret(envConfig.superAdmin.secret);
+    if (!secretPassed) return mongoose.connection.close();
 
-    console.log('\nSuper Admin Creation Wizard\n');
+    console.log('\nSecret verified. Proceeding with Super Admin Creation Wizard.\n');
 
     const answers = await inquirer.prompt([
       {
@@ -46,7 +72,11 @@ const createSuperAdmin = async () => {
         type: 'input',
         name: 'email',
         message: 'Email:',
-        validate: (input) => validator.isEmail(input) || 'Please enter a valid email address',
+        validate: (input) => {
+          const trimmed = input.trim();
+          if (!trimmed) return 'Email is required';
+          return validator.isEmail(trimmed) || 'Please enter a valid email address';
+        },
       },
       {
         type: 'input',
@@ -54,9 +84,9 @@ const createSuperAdmin = async () => {
         message: 'Phone Number:',
         validate: (input) => {
           const trimmed = input.trim();
+          if (!trimmed) return 'Phone number is required';
           const digitsOnly = trimmed.replace(/\D/g, '');
           const phoneRegex = /^\+?[0-9\-]+$/;
-          if (!trimmed) return 'Phone number is required';
           if (digitsOnly.length < 7 || digitsOnly.length > 15 || !phoneRegex.test(trimmed)) {
             return 'Phone number must be 7 to 15 digits and may include "+" or hyphens';
           }
@@ -69,6 +99,7 @@ const createSuperAdmin = async () => {
         message: 'Password:',
         mask: '*',
         validate: (input) => {
+          if (!input.trim()) return 'Password is required';
           const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[\S]{8,}$/;
           return (
             passwordRegex.test(input) ||
@@ -83,19 +114,22 @@ const createSuperAdmin = async () => {
     });
 
     if (existing) {
-      console.log('An admin with this email or phone number already exists.');
+      console.log('\nAn admin with this email or phone number already exists.');
       return mongoose.connection.close();
     }
 
     const admin = new Admin({
       ...answers,
       role: 'super-admin',
+      is_active: true,
+      is_deleted: false,
       email_verified: true,
-      verified_email_at: new Date()
+      verified_email_at: new Date(),
     });
 
     await admin.save();
-    console.log('\nSuper admin created successfully!\n');
+
+    console.log('\nSuper admin created successfully!');
   } catch (err) {
     console.error('\nError creating super admin:', err.message);
   } finally {
