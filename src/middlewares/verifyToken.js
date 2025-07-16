@@ -9,7 +9,7 @@ export const verifyToken = asyncWrapper(async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Authorization token missing'));
+    return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Missing authorization token'));
   }
 
   const token = authHeader.split(' ')[1];
@@ -20,8 +20,8 @@ export const verifyToken = asyncWrapper(async (req, res, next) => {
       req.includePassword ? '+password' : '-password'
     );
 
-    if (!admin || admin.is_deleted || !admin.is_active) {
-      return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Access denied'));
+    if (!admin || admin.is_deleted) {
+      return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Access Denied!'));
     }
 
     req.admin = admin;
