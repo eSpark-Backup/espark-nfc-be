@@ -1,4 +1,5 @@
 import { body } from 'express-validator';
+import validator from 'validator';
 
 export const validateCreateCompanyProfile = [
   body('company_name')
@@ -9,14 +10,14 @@ export const validateCreateCompanyProfile = [
     .withMessage('Company name must not exceed 150 characters'),
 
   body('website_link')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
-    .isURL()
+    .custom((value) => !value || validator.isURL(value))
     .withMessage('Invalid website URL')
-    .customSanitizer((value) => value.toLowerCase()),
+    .customSanitizer((value) => value?.toLowerCase()),
 
   body('established')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
     .isLength({ max: 30 })
     .withMessage('Established field must not exceed 30 characters'),
@@ -24,17 +25,17 @@ export const validateCreateCompanyProfile = [
   body('address').trim().notEmpty().withMessage('Address is required'),
 
   body('button_name')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
     .isLength({ max: 50 })
     .withMessage('Button name must not exceed 50 characters'),
 
   body('button_redirect_url')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
-    .isURL()
+    .custom((value) => !value || validator.isURL(value))
     .withMessage('Invalid redirect URL')
-    .customSanitizer((value) => value.toLowerCase()),
+    .customSanitizer((value) => value?.toLowerCase()),
 ];
 
 export const validateUpdateCompanyProfile = [
@@ -47,14 +48,14 @@ export const validateUpdateCompanyProfile = [
     .withMessage('Company name must not exceed 150 characters'),
 
   body('website_link')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
-    .isURL()
+    .custom((value) => !value || validator.isURL(value))
     .withMessage('Invalid website URL')
-    .customSanitizer((value) => value.toLowerCase()),
+    .customSanitizer((value) => value?.toLowerCase()),
 
   body('established')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
     .isLength({ max: 30 })
     .withMessage('Established field must not exceed 30 characters'),
@@ -62,15 +63,15 @@ export const validateUpdateCompanyProfile = [
   body('address').optional().trim().notEmpty().withMessage('Address cannot be empty'),
 
   body('button_name')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
     .isLength({ max: 50 })
     .withMessage('Button name must not exceed 50 characters'),
 
   body('button_redirect_url')
-    .optional({ checkFalsy: true })
+    .optional()
     .trim()
-    .isURL()
+    .custom((value) => !value || validator.isURL(value))
     .withMessage('Invalid redirect URL')
-    .customSanitizer((value) => value.toLowerCase()),
+    .customSanitizer((value) => value?.toLowerCase()),
 ];

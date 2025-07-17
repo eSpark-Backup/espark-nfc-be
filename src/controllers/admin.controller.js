@@ -2,7 +2,7 @@ import { Admin } from '../models/admin.model.js';
 import { asyncWrapper } from '../utils/asyncWrapper.js';
 import { CustomError } from '../utils/customError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
-import { attachPresignedImageUrl, replaceImage, removeImage } from '../utils/imageHelper.js';
+import { attachPresignedImageUrl, replaceImage, removeImage, uploadImage } from '../utils/imageHelper.js';
 import { checkDuplicateAdmin } from '../utils/duplicateChecker.js';
 import { applyQueryOptions } from '../utils/queryHelper.js';
 import crypto from 'crypto';
@@ -12,6 +12,7 @@ import { sendVerificationEmail, sendAdminRestorationEmail, sendAdminDeletionEmai
 export const createAdmin = asyncWrapper(async (req, res, next) => {
   const { full_name, email, phone_number, password } = req.body;
 
+  // Check for duplicates
   const existing = await checkDuplicateAdmin({ email, phone_number, Admin });
   if (existing) {
     return next(
@@ -22,6 +23,7 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     );
   }
 
+  // Create new admin instance
   const admin = new Admin({
     full_name,
     email,
@@ -31,30 +33,40 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     created_by: req.admin?.id || null,
   });
 
+  // Handle image upload if provided
   if (req.file) {
-    await replaceImage(admin, req.file.buffer, 'admin');
+    const { image_key, image_url } = await uploadImage(req.file.buffer, 'admin');
+    admin.profile_image = { image_key, image_url };
   }
 
+  // Save admin (first time to generate ID)
   await admin.save();
 
+  // Set email verification code and expiry
   const code = crypto.randomInt(100000, 999999).toString();
   admin.email_verification_code = code;
   admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000);
   await admin.save();
 
+  // Send email verification
   await sendVerificationEmail({
     to: admin.email,
     name: admin.full_name,
     code,
   });
 
+  // Fetch updated admin without password
   const savedAdmin = await Admin.findById(admin._id).select('-password');
-  await attachPresignedImageUrl(savedAdmin);
 
+  // Attach signed URL to image (if key exists)
+  await attachPresignedImageUrl(savedAdmin, 'profile_image');
+
+  // Clean up response
   if (savedAdmin?.profile_image) {
     delete savedAdmin.profile_image.image_key;
   }
 
+  // Final response
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
     message:
@@ -62,6 +74,7 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     admin: savedAdmin,
   });
 });
+
 
 // Get All Admins
 export const getAllAdmins = asyncWrapper(async (req, res) => {
@@ -79,7 +92,7 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
   );
 
   for (const admin of admins) {
-    await attachPresignedImageUrl(admin);
+    await attachPresignedImageUrl(admin, 'profile_image');
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -103,7 +116,7 @@ export const getAdminById = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  await attachPresignedImageUrl(admin);
+  await attachPresignedImageUrl(admin, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -153,13 +166,13 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   let imageUpdated = false;
 
   if (req.file) {
-    await replaceImage(admin, req.file.buffer, 'admin');
+    await replaceImage(admin, req.file.buffer, 'admin', 'profile_image');
     imageUpdated = true;
   } else if (
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
-    await removeImage(admin);
+    await removeImage(admin, 'profile_image');
     imageUpdated = true;
   }
 
@@ -194,7 +207,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     const freshAdmin = await Admin.findById(id).select(
       '-password -email_verification_code -email_verification_expires'
     );
-    await attachPresignedImageUrl(freshAdmin);
+    await attachPresignedImageUrl(freshAdmin, 'profile_image');
 
     if (freshAdmin?.profile_image) {
       delete freshAdmin.profile_image.image_key;
@@ -213,7 +226,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   const savedAdmin = await Admin.findById(admin._id).select(
     '-password -email_verification_code -email_verification_expires'
   );
-  await attachPresignedImageUrl(savedAdmin);
+  await attachPresignedImageUrl(savedAdmin, 'profile_image');
 
   if (savedAdmin?.profile_image) {
     delete savedAdmin.profile_image.image_key;
@@ -288,7 +301,7 @@ export const restoreAdmin = asyncWrapper(async (req, res, next) => {
     name: admin.full_name,
   });
 
-  await attachPresignedImageUrl(admin);
+  await attachPresignedImageUrl(admin, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -460,7 +473,7 @@ export const getDeletedAdmins = asyncWrapper(async (req, res) => {
   );
 
   for (const admin of admins) {
-    await attachPresignedImageUrl(admin);
+    await attachPresignedImageUrl(admin, 'profile_image');
   }
 
   res.status(HTTP_STATUS.OK).json({

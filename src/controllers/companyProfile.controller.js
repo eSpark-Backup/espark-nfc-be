@@ -32,9 +32,9 @@ export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
     created_by: req.admin.id,
   });
 
-  await replaceImage(companyProfile, req.file.buffer, 'company-profile');
+  await replaceImage(companyProfile, req.file.buffer, 'company-profile', 'profile_image');
   await companyProfile.save();
-  await attachPresignedImageUrl(companyProfile);
+  await attachPresignedImageUrl(companyProfile, 'profile_image');
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -53,7 +53,7 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  await attachPresignedImageUrl(companyProfile);
+  await attachPresignedImageUrl(companyProfile, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -99,18 +99,18 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   }
 
   if (req.file) {
-    await replaceImage(companyProfile, req.file.buffer, 'company-profile');
+    await replaceImage(companyProfile, req.file.buffer, 'company-profile', 'profile_image');
     updated = true;
   } else if (
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
-    await removeImage(companyProfile);
+    await removeImage(companyProfile, 'profile_image');
     updated = true;
   }
 
   if (!updated) {
-    await attachPresignedImageUrl(companyProfile);
+    await attachPresignedImageUrl(companyProfile, 'profile_image');
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Nothing to update',
@@ -120,7 +120,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
 
   companyProfile.updated_by = req.admin.id;
   await companyProfile.save();
-  await attachPresignedImageUrl(companyProfile);
+  await attachPresignedImageUrl(companyProfile, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,

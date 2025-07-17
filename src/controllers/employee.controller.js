@@ -84,9 +84,10 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
 
 // Get All Employees
 export const getEmployees = asyncWrapper(async (req, res) => {
-  const baseQuery = Employee.find()
+  let baseQuery = Employee.find()
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email');
+    .populate('updated_by', 'full_name email')
+    .populate('department_id', 'name'); // Optionally include department info
 
   const { results: employees, pagination } = await applyQueryOptions(
     Employee,
@@ -96,15 +97,21 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     ['name', 'email', 'created_at']
   );
 
-  await Promise.all(employees.map(attachPresignedImageUrl));
+  const employeesWithExtras = await Promise.all(
+    employees.map(async (emp) => {
+      await attachPresignedImageUrl(emp, 'profile_image');
+      return emp;
+    })
+  );
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: employees.length ? 'Employees fetched successfully' : 'No employees found',
-    employees,
+    message: employeesWithExtras.length ? 'Employees fetched successfully' : 'No employees found',
+    employees: employeesWithExtras,
     pagination,
   });
 });
+
 
 // Get Employee By ID
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
@@ -119,7 +126,7 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  await attachPresignedImageUrl(employee);
+  await attachPresignedImageUrl(employee, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -147,15 +154,16 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  let updated = false;
+  const normalizedEmail = email || employee.email;
+  const normalizedPhone = phone_number || employee.phone_number;
 
-  if (
-    (email && email !== employee.email) ||
-    (phone_number && phone_number !== employee.phone_number)
-  ) {
+  const isSameEmail = employee.email === normalizedEmail;
+  const isSamePhone = employee.phone_number === normalizedPhone;
+
+  if (!isSameEmail || !isSamePhone) {
     const duplicate = await checkDuplicateEmployee({
-      email: email !== employee.email ? email : null,
-      phone_number: phone_number !== employee.phone_number ? phone_number : null,
+      email: normalizedEmail,
+      phone_number: normalizedPhone,
       excludeId: id,
       Employee,
     });
@@ -163,19 +171,21 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     if (duplicate) {
       return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Email or phone number already exists'));
     }
-
-    if (email) {
-      employee.email = email;
-      updated = true;
-    }
-
-    if (phone_number) {
-      employee.phone_number = phone_number;
-      updated = true;
-    }
   }
 
-  if (department_id && department_id !== employee.department_id.toString()) {
+  let updated = false;
+
+  if (email && email !== employee.email) {
+    employee.email = email;
+    updated = true;
+  }
+
+  if (phone_number && phone_number !== employee.phone_number) {
+    employee.phone_number = phone_number;
+    updated = true;
+  }
+
+  if (department_id && department_id !== employee.department_id?.toString()) {
     const department = await Department.findById(department_id);
     if (!department) {
       return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
@@ -184,15 +194,9 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  Object.entries(fieldsToUpdate).forEach(([key, value]) => {
-    if (value !== undefined && value !== employee[key]) {
-      employee[key] = value;
-      updated = true;
-    }
-  });
-
+  // Update social links
   const socialLinksChanged = ['facebook', 'twitter', 'instagram', 'youtube'].some(
-    (key) => (employee.social_links[key] || '') !== req.body[key]
+    (key) => (employee.social_links?.[key] || '') !== req.body[key]
   );
 
   if (socialLinksChanged) {
@@ -200,19 +204,33 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
+  // Update other fields
+  Object.entries(fieldsToUpdate).forEach(([key, value]) => {
+    if (value !== undefined && value !== employee[key]) {
+      employee[key] = value;
+      updated = true;
+    }
+  });
+
   if (req.file) {
-    await replaceImage(employee, req.file.buffer, 'employee');
+    await replaceImage(employee, req.file.buffer, 'employee', 'profile_image');
     updated = true;
   } else if (
     'profile_image' in req.body &&
     (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
-    await removeImage(employee);
+    await removeImage(employee, 'profile_image');
+    employee.profile_image = undefined;
     updated = true;
   }
 
+  // Require image to exist after update
+  if (!employee.profile_image?.image_key && !req.file) {
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
+  }
+
   if (!updated) {
-    await attachPresignedImageUrl(employee);
+    await attachPresignedImageUrl(employee, 'profile_image');
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Nothing to update',
@@ -223,7 +241,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   employee.updated_by = req.admin?.id || null;
   await employee.save();
 
-  await attachPresignedImageUrl(employee);
+  await attachPresignedImageUrl(employee, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -231,6 +249,8 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     employee,
   });
 });
+
+
 
 // Delete Employee
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
@@ -241,7 +261,7 @@ export const deleteEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  await removeImage(employee);
+  await removeImage(employee, 'profile_image');
   await employee.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({
