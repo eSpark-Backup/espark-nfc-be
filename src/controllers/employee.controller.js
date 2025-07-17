@@ -8,12 +8,27 @@ import {
   replaceImage,
   removeImage,
   attachPresignedImageUrl,
+  uploadImage
 } from '../utils/imageHelper.js';
 import { checkDuplicateEmployee } from '../utils/duplicateChecker.js';
 
 // Create Employee
 export const createEmployee = asyncWrapper(async (req, res, next) => {
-  const { email, phone_number, department_id, ...rest } = req.body;
+  const {
+    name,
+    email,
+    phone_number,
+    age,
+    joining_date,
+    designation,
+    address,
+    about_me,
+    department_id,
+    facebook,
+    twitter,
+    instagram,
+    youtube,
+  } = req.body;
 
   const duplicate = await checkDuplicateEmployee({ email, phone_number, Employee });
   if (duplicate) {
@@ -25,27 +40,36 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
   }
 
-  const employee = new Employee({
-    ...rest,
+  const employeeData = {
+    name,
     email,
     phone_number,
+    age,
+    joining_date,
+    designation,
+    address,
+    about_me,
     department_id,
     social_links: {
-      facebook: req.body.facebook,
-      twitter: req.body.twitter,
-      instagram: req.body.instagram,
-      youtube: req.body.youtube,
+      facebook,
+      twitter,
+      instagram,
+      youtube,
     },
     created_by: req.user?.id || null,
     updated_by: req.user?.id || null,
-  });
+  };
 
   if (req.file) {
-    await replaceImage(employee, req.file.buffer, 'employee');
+    const { image_key, image_url } = await uploadImage(req.file.buffer, 'employee');
+    employeeData.image = { image_key, image_url };
   }
 
-  await employee.save();
-  await attachPresignedImageUrl(employee);
+  const employee = await Employee.create(employeeData);
+
+  if (employee?.image?.image_key) {
+    await attachPresignedImageUrl(employee); // this will mutate employee.image.image_url
+  }
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -53,6 +77,10 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     employee,
   });
 });
+
+
+
+
 
 // Get All Employees
 export const getEmployees = asyncWrapper(async (req, res) => {
@@ -176,8 +204,8 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     await replaceImage(employee, req.file.buffer, 'employee');
     updated = true;
   } else if (
-    'profile_image' in req.body &&
-    (!req.body.profile_image || req.body.profile_image === 'null')
+    'image' in req.body &&
+    (!req.body.image || req.body.image === 'null')
   ) {
     await removeImage(employee);
     updated = true;

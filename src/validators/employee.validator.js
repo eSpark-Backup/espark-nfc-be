@@ -8,10 +8,12 @@ export const validateCreateEmployee = [
     .trim()
     .notEmpty()
     .withMessage('Employee name is required')
+    .bail()
     .isLength({ max: 100 })
     .withMessage('Name can be up to 100 characters')
-    .matches(/[a-zA-Z]/)
-    .withMessage('Employee name must include at least one alphabet character'),
+    .bail()
+    .matches(/^[A-Za-z]+(?: [A-Za-z]+)*$/)
+    .withMessage('Name must contain only alphabetic characters and optional single spaces'),
 
   body('email')
     .trim()
@@ -25,14 +27,23 @@ export const validateCreateEmployee = [
     .trim()
     .notEmpty()
     .withMessage('Phone number is required')
-    .isLength({ min: 7, max: 15 })
-    .withMessage('Phone number must be between 7 and 15 digits')
-    .matches(/^\+?[0-9]{7,15}$/)
-    .withMessage('Invalid phone number'),
+    .matches(/^\+?[0-9\-]+$/)
+    .withMessage('Phone number must contain only digits, hyphens, and an optional leading +')
+    .custom((value) => {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        throw new Error('Phone number must be between 7 and 15 digits');
+      }
+      return true;
+    }),
 
   body('age')
     .notEmpty()
     .withMessage('Age is required')
+    .bail()
+    .isNumeric()
+    .withMessage('Age must be a number')
+    .bail()
     .isInt({ min: 18, max: 100 })
     .withMessage('Age must be between 18 and 100'),
 
@@ -43,7 +54,17 @@ export const validateCreateEmployee = [
     .toDate()
     .withMessage('Invalid joining date'),
 
-  body('designation').trim().notEmpty().withMessage('Designation is required'),
+  body('designation')
+    .trim()
+    .notEmpty()
+    .withMessage('Designation is required')
+    .bail()
+    .custom((value) => {
+      if (/^\d+$/.test(value)) {
+        throw new Error('Designation cannot be only numbers');
+      }
+      return true;
+    }),
 
   body('department_id')
     .notEmpty()
@@ -102,10 +123,12 @@ export const validateUpdateEmployee = [
     .trim()
     .notEmpty()
     .withMessage('Employee name is required')
+    .bail()
     .isLength({ max: 100 })
     .withMessage('Name can be up to 100 characters')
-    .matches(/[a-zA-Z]/)
-    .withMessage('Employee name must include at least one alphabet character'),
+    .bail()
+    .matches(/^[A-Za-z]+(?: [A-Za-z]+)*$/)
+    .withMessage('Name must contain only alphabetic characters and optional single spaces'),
 
   body('email')
     .optional()
@@ -117,19 +140,27 @@ export const validateUpdateEmployee = [
     .withMessage('Invalid email address'),
 
   body('phone_number')
-    .optional()
     .trim()
     .notEmpty()
     .withMessage('Phone number is required')
-    .isLength({ min: 7, max: 15 })
-    .withMessage('Phone number must be between 7 and 15 digits')
-    .matches(/^\+?[0-9]{7,15}$/)
-    .withMessage('Invalid phone number'),
+    .matches(/^\+?[0-9\-]+$/)
+    .withMessage('Phone number must contain only digits, hyphens, and an optional leading +')
+    .custom((value) => {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        throw new Error('Phone number must be between 7 and 15 digits');
+      }
+      return true;
+    }),
 
   body('age')
     .optional()
     .notEmpty()
     .withMessage('Age is required')
+    .bail()
+    .isNumeric()
+    .withMessage('Age must be a number')
+    .bail()
     .isInt({ min: 18, max: 100 })
     .withMessage('Age must be between 18 and 100'),
 
@@ -145,7 +176,14 @@ export const validateUpdateEmployee = [
     .optional()
     .trim()
     .notEmpty()
-    .withMessage('Designation is required'),
+    .withMessage('Designation is required')
+    .bail()
+    .custom((value) => {
+      if (/^\d+$/.test(value)) {
+        throw new Error('Designation cannot be only numbers');
+      }
+      return true;
+    }),
 
   body('department_id')
     .optional()

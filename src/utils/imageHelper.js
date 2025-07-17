@@ -7,9 +7,9 @@ import { generatePresignedUrl } from './s3.js';
  * @param {Object} doc - Mongoose document.
  * @param {Buffer} buffer - Raw image buffer.
  * @param {String} prefix - Filename prefix.
- * @param {String} field - Field name (default: 'profile_image').
+ * @param {String} field - Field name (default: 'image').
  */
-export const replaceImage = async (doc, buffer, prefix, field = 'profile_image') => {
+export const replaceImage = async (doc, buffer, prefix, field = 'image') => {
   const current = doc[field];
 
   if (current?.image_key) {
@@ -30,9 +30,9 @@ export const replaceImage = async (doc, buffer, prefix, field = 'profile_image')
 /**
  * Removes the image from a given document field.
  * @param {Object} doc - Mongoose document.
- * @param {String} field - Field name (default: 'profile_image').
+ * @param {String} field - Field name (default: 'image').
  */
-export const removeImage = async (doc, field = 'profile_image') => {
+export const removeImage = async (doc, field = 'image') => {
   const current = doc[field];
 
   if (current?.image_key) {
@@ -45,9 +45,9 @@ export const removeImage = async (doc, field = 'profile_image') => {
 /**
  * Attaches a presigned URL to the image if a key exists.
  * @param {Object} doc - Mongoose document.
- * @param {String} field - Field name (default: 'profile_image').
+ * @param {String} field - Field name (default: 'image').
  */
-export const attachPresignedImageUrl = async (doc, field = 'profile_image') => {
+export const attachPresignedImageUrl = async (doc, field = 'image') => {
   const imageKey = doc?.[field]?.image_key;
   if (!imageKey) return;
 
@@ -57,4 +57,16 @@ export const attachPresignedImageUrl = async (doc, field = 'profile_image') => {
     // Optional: log error
     doc[field].image_url = null;
   }
+};
+
+export const uploadImage = async (buffer, prefix) => {
+  const optimizedBuffer = await processImage(buffer);
+  const filename = `${prefix}-${Date.now()}.webp`;
+
+  const uploaded = await uploadToS3(optimizedBuffer, filename, 'image/webp');
+
+  return {
+    image_key: uploaded?.key || null,
+    image_url: uploaded?.url || null,
+  };
 };

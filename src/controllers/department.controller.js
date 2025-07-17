@@ -8,6 +8,7 @@ import {
   replaceImage,
   removeImage,
   attachPresignedImageUrl,
+  uploadImage
 } from '../utils/imageHelper.js';
 import { checkDuplicateDepartment } from '../utils/duplicateChecker.js';
 
@@ -36,7 +37,8 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
   });
 
   if (req.file) {
-    await replaceImage(department, req.file.buffer, 'department');
+    const { image_key, image_url } = await uploadImage(req.file.buffer, 'department');
+    department.image = { image_key, image_url };
   }
 
   await department.save();
@@ -54,14 +56,13 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   const includeEmployees = req.query.include_employees === 'true';
 
   let baseQuery = Department.find()
-    .populate('employee_count')
     .populate('created_by', 'full_name email')
     .populate('updated_by', 'full_name email');
 
   if (includeEmployees) {
     baseQuery = baseQuery.populate({
       path: 'employees',
-      options: { sort: { createdAt: -1 }, limit: 5 },
+      options: { sort: { createdAt: -1 }, limit: 10 },
     });
   }
 
@@ -73,15 +74,40 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
     ['name', 'email', 'created_at']
   );
 
-  await Promise.all(departments.map(attachPresignedImageUrl));
+  const departmentsWithExtras = await Promise.all(
+    departments.map(async (dept) => {
+      await attachPresignedImageUrl(dept);
+
+      let employeeCount = 0;
+
+      if (includeEmployees) {
+        employeeCount = await Employee.countDocuments({ department_id: dept._id });
+
+        if (Array.isArray(dept.employees) && dept.employees.length === 0 && employeeCount === 0) {
+          dept.employee_message = 'There are no employees in this department.';
+        }
+      }
+
+      dept.employee_count = employeeCount;
+
+      return dept;
+    })
+  );
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: departments.length ? 'Departments fetched successfully' : 'No departments found',
-    departments,
+    message: departmentsWithExtras.length
+      ? 'Departments fetched successfully'
+      : 'No departments found',
+    departments: departmentsWithExtras,
     pagination,
   });
 });
+
+
+
+
+
 
 // Get Department By ID
 export const getDepartmentById = asyncWrapper(async (req, res, next) => {
@@ -164,9 +190,8 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   if (req.file) {
     await replaceImage(department, req.file.buffer, 'department');
     updated = true;
-  } else if ('image' in req.body && (!req.body.image || req.body.image === 'null')) {
-    await removeImage(department);
-    updated = true;
+  } else if (!department.image?.image_key) {
+    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Image is required'));
   }
 
   if (!updated) {

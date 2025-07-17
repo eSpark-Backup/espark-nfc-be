@@ -71,7 +71,7 @@ const adminSchema = new mongoose.Schema(
       default: false,
       select: false,
     },
-    profile_image: imageSchema,
+    image: imageSchema,
     email_verified: {
       type: Boolean,
       default: false,
