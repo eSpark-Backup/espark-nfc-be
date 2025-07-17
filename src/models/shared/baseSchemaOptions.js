@@ -9,6 +9,12 @@ export const baseSchemaOptions = {
       ret.id = ret._id;
       delete ret._id;
       delete ret.__v;
+      if (ret.profile_image?.image_key) {
+        delete ret.profile_image.image_key;
+      }
+      if (ret.image?.image_key) {
+        delete ret.image.image_key;
+      }
     },
   },
   toObject: {
@@ -17,6 +23,13 @@ export const baseSchemaOptions = {
       ret.id = ret._id;
       delete ret._id;
       delete ret.__v;
+
+      if (ret.profile_image?.image_key) {
+        delete ret.profile_image.image_key;
+      }
+      if (ret.image?.image_key) {
+        delete ret.image.image_key;
+      }
     },
   },
 };

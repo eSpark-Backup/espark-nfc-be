@@ -51,6 +51,10 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
   const savedAdmin = await Admin.findById(admin._id).select('-password');
   await attachPresignedImageUrl(savedAdmin);
 
+  if (savedAdmin?.profile_image) {
+    delete savedAdmin.profile_image.image_key;
+  }
+
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
     message:
@@ -187,26 +191,43 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   }
 
   if (!updated && !imageUpdated) {
-    await attachPresignedImageUrl(admin);
+    const freshAdmin = await Admin.findById(id).select(
+      '-password -email_verification_code -email_verification_expires'
+    );
+    await attachPresignedImageUrl(freshAdmin);
+
+    if (freshAdmin?.profile_image) {
+      delete freshAdmin.profile_image.image_key;
+    }
+
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Admin updated successfully',
-      admin,
+      admin: freshAdmin,
     });
   }
 
   admin.updated_by = req.admin?.id || null;
   await admin.save();
-  await attachPresignedImageUrl(admin);
+
+  const savedAdmin = await Admin.findById(admin._id).select(
+    '-password -email_verification_code -email_verification_expires'
+  );
+  await attachPresignedImageUrl(savedAdmin);
+
+  if (savedAdmin?.profile_image) {
+    delete savedAdmin.profile_image.image_key;
+  }
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: emailChanged
       ? 'Admin updated successfully. A verification code has been sent to the new email address. Verify it to continue using the system.'
       : 'Admin updated successfully',
-    admin,
+    admin: savedAdmin,
   });
 });
+
 
 // Delete Admin
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
@@ -276,8 +297,7 @@ export const restoreAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-// Change Password
+// Change Own Password
 export const changePassword = asyncWrapper(async (req, res, next) => {
   const { current_password, new_password } = req.body;
 
@@ -286,8 +306,27 @@ export const changePassword = asyncWrapper(async (req, res, next) => {
   }
 
   const admin = await Admin.findById(req.admin.id).select('+password');
+
   if (!admin || admin.is_deleted) {
     return next(new CustomError(HTTP_STATUS.UNAUTHORIZED, 'Admin not found or unauthorized'));
+  }
+
+  if (admin.role === 'super-admin') {
+    return next(
+      new CustomError(
+        HTTP_STATUS.FORBIDDEN,
+        'Access denied: You cannot change the password of an admin'
+      )
+    );
+  }
+
+  if (!admin.email_verified) {
+    return next(
+      new CustomError(
+        HTTP_STATUS.UNAUTHORIZED,
+        'Email verification required before changing password'
+      )
+    );
   }
 
   const isMatch = await admin.comparePassword(current_password);
@@ -304,6 +343,7 @@ export const changePassword = asyncWrapper(async (req, res, next) => {
     message: 'Password updated successfully',
   });
 });
+
 
 // Reset Password by Super Admin
 export const resetPasswordBySuperAdmin = asyncWrapper(async (req, res, next) => {

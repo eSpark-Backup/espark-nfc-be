@@ -22,7 +22,10 @@ const departmentSchema = new mongoose.Schema(
         message: 'Invalid email address',
       },
     },
-    image: imageSchema,
+    image: {
+      type: imageSchema,
+      required: [true, 'Image is required'],
+    },
     ...auditFields,
   },
   baseSchemaOptions

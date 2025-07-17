@@ -139,7 +139,7 @@ export const validateChangeOwnPassword = [
     .notEmpty()
     .withMessage('New password is required')
     .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters')
+    .withMessage('Password must be at least 8 characters long')
     .matches(/[a-z]/)
     .withMessage('Password must contain a lowercase letter')
     .matches(/[A-Z]/)
