@@ -65,7 +65,7 @@ const employeeSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500, 'About me must not exceed 500 characters'],
     },
-    image: {
+    profile_image: {
       type: imageSchema,
       required: [true, 'Profile image is required'],
     },

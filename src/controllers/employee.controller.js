@@ -56,19 +56,19 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       instagram,
       youtube,
     },
-    created_by: req.user?.id || null,
-    updated_by: req.user?.id || null,
+    created_by: req.admin?.id || null,
+    updated_by: null
   };
 
   if (req.file) {
     const { image_key, image_url } = await uploadImage(req.file.buffer, 'employee');
-    employeeData.image = { image_key, image_url };
+    employeeData.profile_image = { image_key, image_url };
   }
 
   const employee = await Employee.create(employeeData);
 
-  if (employee?.image?.image_key) {
-    await attachPresignedImageUrl(employee); // this will mutate employee.image.image_url
+  if (employee?.profile_image?.image_key) {
+    await attachPresignedImageUrl(employee, 'profile_image');
   }
 
   res.status(HTTP_STATUS.CREATED).json({
@@ -204,8 +204,8 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     await replaceImage(employee, req.file.buffer, 'employee');
     updated = true;
   } else if (
-    'image' in req.body &&
-    (!req.body.image || req.body.image === 'null')
+    'profile_image' in req.body &&
+    (!req.body.profile_image || req.body.profile_image === 'null')
   ) {
     await removeImage(employee);
     updated = true;
@@ -220,7 +220,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  employee.updated_by = req.user?.id || null;
+  employee.updated_by = req.admin?.id || null;
   await employee.save();
 
   await attachPresignedImageUrl(employee);

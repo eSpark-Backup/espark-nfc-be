@@ -43,7 +43,7 @@ const companyProfileSchema = new mongoose.Schema(
         message: 'Invalid redirect URL',
       },
     },
-    image: {
+    profile_image: {
       type: imageSchema,
       required: [true, 'Profile image is required'],
     },
