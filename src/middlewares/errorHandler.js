@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 
 export const errorHandler = (err, req, res, next) => {
@@ -6,7 +7,6 @@ export const errorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR;
   let message = err.message || 'Internal Server Error';
 
-  // Handle express-validator errors
   if (err.array && typeof err.array === 'function') {
     const errors = err.array();
     if (errors.length > 0) {
@@ -15,13 +15,17 @@ export const errorHandler = (err, req, res, next) => {
     }
   }
 
-  // Handle Multer-specific errors
+  if (err instanceof mongoose.Error.ValidationError) {
+    const messages = Object.values(err.errors).map((e) => e.message);
+    message = messages[0] || 'Validation failed';
+    statusCode = HTTP_STATUS.BAD_REQUEST;
+  }
+
   if (err.code === 'LIMIT_FILE_SIZE') {
     message = 'File size should not exceed 5MB';
     statusCode = HTTP_STATUS.BAD_REQUEST;
   }
 
-  // Handle unsupported file types (from fileFilter)
   if (err.message === 'Only JPEG, PNG, and WEBP image formats are allowed') {
     statusCode = HTTP_STATUS.BAD_REQUEST;
   }

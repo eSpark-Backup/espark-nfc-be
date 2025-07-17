@@ -27,7 +27,7 @@ export const sendVerificationEmail = async ({ to, name, code }) => {
   await transporter.sendMail(mailOptions);
 };
 
-// 🆕 Admin restoration notification email
+// Admin restoration notification email
 export const sendAdminRestorationEmail = async ({ to, name }) => {
   const mailOptions = {
     from: `"${envConfig.smtp.fromName}" <${envConfig.smtp.from}>`,
