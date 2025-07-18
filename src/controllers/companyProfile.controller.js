@@ -105,7 +105,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     await attachPresignedImageUrl(companyProfile, 'profile_image');
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Nothing to update',
+      message: 'Company profile updated successfully',
       company_profile: companyProfile,
     });
   }

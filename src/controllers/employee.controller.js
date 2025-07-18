@@ -1,5 +1,6 @@
 import { Employee } from '../models/employee.model.js';
 import { Department } from '../models/department.model.js';
+import { CompanyProfile } from '../models/companyProfile.model.js';
 import { asyncWrapper } from '../utils/asyncWrapper.js';
 import { CustomError } from '../utils/customError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
@@ -14,6 +15,9 @@ import { checkDuplicateEmployee } from '../utils/duplicateChecker.js';
 
 // Create Employee
 export const createEmployee = asyncWrapper(async (req, res, next) => {
+
+  const companyProfile = await CompanyProfile.findOne();
+
   const {
     name,
     email,
@@ -57,7 +61,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       youtube,
     },
     created_by: req.admin?.id || null,
-    updated_by: null
+    updated_by: null,
+    company_id: companyProfile?._id
   };
 
   if (req.file) {
@@ -87,7 +92,8 @@ export const getEmployees = asyncWrapper(async (req, res) => {
   let baseQuery = Employee.find()
     .populate('created_by', 'full_name email')
     .populate('updated_by', 'full_name email')
-    .populate('department_id', 'name'); // Optionally include department info
+    .populate('department_id', 'name')
+    .populate('company_id', 'company_name');
 
   const { results: employees, pagination } = await applyQueryOptions(
     Employee,
@@ -120,7 +126,8 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const employee = await Employee.findById(id)
     .populate('department_id', 'name email')
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email');
+    .populate('updated_by', 'full_name email')
+    .populate('company_id', 'company_name');
 
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
@@ -233,7 +240,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     await attachPresignedImageUrl(employee, 'profile_image');
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Nothing to update',
+      message: 'Employee updated successfully',
       employee,
     });
   }

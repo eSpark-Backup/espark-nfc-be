@@ -1,4 +1,5 @@
 import { Admin } from '../models/admin.model.js';
+import { CompanyProfile } from '../models/companyProfile.model.js';
 import { asyncWrapper } from '../utils/asyncWrapper.js';
 import { CustomError } from '../utils/customError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
@@ -20,6 +21,9 @@ import { Employee } from '../models/employee.model.js';
 
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
+
+  const companyProfile = await CompanyProfile.findOne();
+
   const { full_name, email, phone_number, password } = req.body;
 
   // Check for duplicates
@@ -41,6 +45,7 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     password,
     role: 'admin',
     created_by: req.admin?.id || null,
+    company_id: companyProfile?._id
   });
 
   // Handle image upload if provided
@@ -91,7 +96,8 @@ export const getAllAdmins = asyncWrapper(async (req, res) => {
   const baseQuery = Admin.find({ role: 'admin', is_deleted: false })
     .select('-password')
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email');
+    .populate('updated_by', 'full_name email')
+    .populate('company_id', 'company_name');
 
   const { results: admins, pagination } = await applyQueryOptions(
     Admin,
@@ -120,7 +126,8 @@ export const getAdminById = asyncWrapper(async (req, res, next) => {
   const admin = await Admin.findOne({ _id: id, is_deleted: false })
     .select('-password')
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email');
+    .populate('updated_by', 'full_name email')
+    .populate('company_id', 'company_name');
 
   if (!admin || admin.role !== 'admin') {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));

@@ -1,5 +1,6 @@
 import { Department } from '../models/department.model.js';
 import { Employee } from '../models/employee.model.js';
+import { CompanyProfile } from '../models/companyProfile.model.js';
 import { asyncWrapper } from '../utils/asyncWrapper.js';
 import { CustomError } from '../utils/customError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
@@ -16,6 +17,9 @@ const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
 // Create Department
 export const createDepartment = asyncWrapper(async (req, res, next) => {
+  
+  const companyProfile = await CompanyProfile.findOne();
+  
   const { name, email } = req.body;
 
   const normalizedName = normalize(name);
@@ -34,6 +38,7 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     name,
     email,
     created_by: req.admin?.id || null,
+    company_id: companyProfile?._id
   });
 
   if (req.file) {
@@ -57,7 +62,8 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
 
   let baseQuery = Department.find()
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email');
+    .populate('updated_by', 'full_name email')
+    .populate('company_id', 'company_name')
 
   if (includeEmployees) {
     baseQuery = baseQuery.populate({
@@ -78,17 +84,12 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
     departments.map(async (dept) => {
       await attachPresignedImageUrl(dept);
 
+      if (includeEmployees && dept.employees?.length) {
+        await Promise.all(dept.employees.map((employee) => attachPresignedImageUrl(employee, 'profile_image')));
+      }
+
       const employeeCount = await Employee.countDocuments({ department_id: dept._id });
       dept.employee_count = employeeCount;
-
-      if (includeEmployees) {
-        const hasLoadedEmployees = Array.isArray(dept.employees);
-        const hasNone = hasLoadedEmployees && dept.employees.length === 0 && employeeCount === 0;
-
-        if (hasNone) {
-          dept.employee_message = 'There are no employees in this department.';
-        }
-      }
 
       return dept;
     })
@@ -112,7 +113,8 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   let query = Department.findById(id)
     .populate('employee_count')
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email');
+    .populate('updated_by', 'full_name email')
+    .populate('company_id', 'company_name');
 
   if (includeEmployees) {
     query = query.populate({
@@ -122,6 +124,12 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   }
 
   const department = await query;
+
+  if (req.query.include_employees === 'true' && department.employees?.length) {
+    await Promise.all(
+      department.employees.map((employee) => attachPresignedImageUrl(employee, 'profile_image'))
+    );
+  }
 
   if (!department) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Department not found'));
@@ -193,7 +201,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     await attachPresignedImageUrl(department);
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Nothing to update',
+      message: 'Department updated successfully',
       department,
     });
   }
