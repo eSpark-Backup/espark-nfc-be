@@ -12,12 +12,6 @@ export const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
-/**
- * Generate a presigned URL to access an object from S3.
- * @param {string} key - The object key in S3.
- * @param {number} expiresIn - Expiration time in seconds (default 1 hour).
- * @returns {Promise<string>} - Presigned URL.
- */
 export const generatePresignedUrl = async (key, expiresIn = 60 * 60) => {
   if (!key || typeof key !== 'string') {
     throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid S3 object key');

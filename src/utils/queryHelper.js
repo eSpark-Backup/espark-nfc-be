@@ -1,12 +1,3 @@
-/**
- * Apply pagination, searching, and sorting to Mongoose queries.
- * @param {Object} model - Mongoose model for countDocuments
- * @param {Object} query - Mongoose query object
- * @param {Object} queryParams - Express req.query object
- * @param {Array} searchableFields - Fields to search by
- * @param {Array} sortableFields - Optional: restrict sort_by to allowed fields
- * @returns {Promise<{ results: any[], pagination: object }>} formatted results and meta
- */
 export const applyQueryOptions = async (
   model,
   query,

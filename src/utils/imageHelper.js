@@ -2,13 +2,6 @@ import { uploadToS3, deleteFromS3 } from '../services/s3Uploader.js';
 import { processImage } from './imageProcessor.js';
 import { generatePresignedUrl } from './s3.js';
 
-/**
- * Replaces the existing image (profile or general) in the document with a new one.
- * @param {Object} doc - Mongoose document.
- * @param {Buffer} buffer - Raw image buffer.
- * @param {String} prefix - Filename prefix.
- * @param {String} field - Field name (default: 'image').
- */
 export const replaceImage = async (doc, buffer, prefix, field = 'image') => {
   const current = doc[field];
 
@@ -27,11 +20,6 @@ export const replaceImage = async (doc, buffer, prefix, field = 'image') => {
   };
 };
 
-/**
- * Removes the image from a given document field.
- * @param {Object} doc - Mongoose document.
- * @param {String} field - Field name (default: 'image').
- */
 export const removeImage = async (doc, field = 'image') => {
   const current = doc[field];
 
@@ -42,11 +30,6 @@ export const removeImage = async (doc, field = 'image') => {
   doc[field] = { image_key: null, image_url: null };
 };
 
-/**
- * Attaches a presigned URL to the image if a key exists.
- * @param {Object} doc - Mongoose document.
- * @param {String} field - Field name (default: 'image').
- */
 export const attachPresignedImageUrl = async (doc, field = 'image') => {
   const imageKey = doc?.[field]?.image_key;
   if (!imageKey) return;
