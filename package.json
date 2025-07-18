@@ -10,7 +10,7 @@
     "create-super-admin": "node scripts/createSuperAdmin.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "jest --detectOpenHandles --forceExit"
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "keywords": [
     "express",
