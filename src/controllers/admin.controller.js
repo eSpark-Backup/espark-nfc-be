@@ -2,11 +2,21 @@ import { Admin } from '../models/admin.model.js';
 import { asyncWrapper } from '../utils/asyncWrapper.js';
 import { CustomError } from '../utils/customError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
-import { attachPresignedImageUrl, replaceImage, removeImage, uploadImage } from '../utils/imageHelper.js';
+import {
+  attachPresignedImageUrl,
+  replaceImage, removeImage,
+  uploadImage
+} from '../utils/imageHelper.js';
 import { checkDuplicateAdmin } from '../utils/duplicateChecker.js';
 import { applyQueryOptions } from '../utils/queryHelper.js';
 import crypto from 'crypto';
-import { sendVerificationEmail, sendAdminRestorationEmail, sendAdminDeletionEmail } from '../utils/emailHelper.js';
+import {
+  sendVerificationEmail,
+  sendAdminRestorationEmail,
+  sendAdminDeletionEmail
+} from '../utils/emailHelper.js';
+import { Department } from '../models/department.model.js';
+import { Employee } from '../models/employee.model.js';
 
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
@@ -241,7 +251,6 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
 // Delete Admin
 export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -263,6 +272,16 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   admin.is_active = false;
   admin.updated_by = req.admin?.id || null;
   await admin.save();
+
+  const modelsToUpdate = [Department, Employee];
+  const fields = ['created_by', 'updated_by'];
+
+  for (const Model of modelsToUpdate) {
+    for (const field of fields) {
+      await Model.updateMany({ [field]: id }, { $set: { [field]: null } });
+    }
+  }
+
 
   await sendAdminDeletionEmail({
     to: admin.email,

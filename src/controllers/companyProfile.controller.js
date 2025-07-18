@@ -63,8 +63,7 @@ export const getCompanyProfile = asyncWrapper(async (req, res, next) => {
 
 // Update Company Profile
 export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
-  const { company_name, website_link, established, address, button_name, button_redirect_url } =
-    req.body;
+  const { company_name, address } = req.body;
 
   const companyProfile = await CompanyProfile.findOne();
   if (!companyProfile) {
@@ -77,25 +76,18 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
     companyProfile.company_name = company_name;
     updated = true;
   }
-  if (website_link && website_link !== companyProfile.website_link) {
-    companyProfile.website_link = website_link;
-    updated = true;
-  }
-  if (established && established !== companyProfile.established) {
-    companyProfile.established = established;
-    updated = true;
-  }
+
   if (address && address !== companyProfile.address) {
     companyProfile.address = address;
     updated = true;
   }
-  if (button_name && button_name !== companyProfile.button_name) {
-    companyProfile.button_name = button_name;
-    updated = true;
-  }
-  if (button_redirect_url && button_redirect_url !== companyProfile.button_redirect_url) {
-    companyProfile.button_redirect_url = button_redirect_url;
-    updated = true;
+
+  const optionalFields = ['website_link', 'established', 'button_name', 'button_redirect_url'];
+  for (const field of optionalFields) {
+    if (field in req.body && req.body[field] !== companyProfile[field]) {
+      companyProfile[field] = req.body[field];
+      updated = true;
+    }
   }
 
   if (req.file) {
@@ -129,6 +121,7 @@ export const updateCompanyProfile = asyncWrapper(async (req, res, next) => {
   });
 });
 
+
 // Delete Company Profile
 export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
   const companyProfile = await CompanyProfile.findOne();
@@ -136,7 +129,7 @@ export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
-  await removeImage(companyProfile);
+  await removeImage(companyProfile, 'profile_image');
   await companyProfile.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({

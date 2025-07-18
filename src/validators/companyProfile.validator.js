@@ -22,7 +22,12 @@ export const validateCreateCompanyProfile = [
     .isLength({ max: 30 })
     .withMessage('Established field must not exceed 30 characters'),
 
-  body('address').trim().notEmpty().withMessage('Address is required'),
+  body('address')
+    .trim()
+    .notEmpty()
+    .withMessage('Address is required')
+    .isLength({ max: 500 })
+    .withMessage('Address must not exceed 500 characters'),
 
   body('button_name')
     .optional()
@@ -60,7 +65,13 @@ export const validateUpdateCompanyProfile = [
     .isLength({ max: 30 })
     .withMessage('Established field must not exceed 30 characters'),
 
-  body('address').optional().trim().notEmpty().withMessage('Address cannot be empty'),
+  body('address')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Address cannot be empty')
+    .isLength({ max: 500 })
+    .withMessage('Address must not exceed 500 characters'),
 
   body('button_name')
     .optional()

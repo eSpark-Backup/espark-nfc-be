@@ -28,6 +28,7 @@ const companyProfileSchema = new mongoose.Schema(
     address: {
       type: String,
       required: [true, 'Address is required'],
+      maxlength: [500, 'Address must not exceed 500 characters'],
       trim: true,
     },
     button_name: {

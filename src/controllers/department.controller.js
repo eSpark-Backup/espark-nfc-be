@@ -78,17 +78,17 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
     departments.map(async (dept) => {
       await attachPresignedImageUrl(dept);
 
-      let employeeCount = 0;
+      const employeeCount = await Employee.countDocuments({ department_id: dept._id });
+      dept.employee_count = employeeCount;
 
       if (includeEmployees) {
-        employeeCount = await Employee.countDocuments({ department_id: dept._id });
+        const hasLoadedEmployees = Array.isArray(dept.employees);
+        const hasNone = hasLoadedEmployees && dept.employees.length === 0 && employeeCount === 0;
 
-        if (Array.isArray(dept.employees) && dept.employees.length === 0 && employeeCount === 0) {
+        if (hasNone) {
           dept.employee_message = 'There are no employees in this department.';
         }
       }
-
-      dept.employee_count = employeeCount;
 
       return dept;
     })
@@ -103,11 +103,6 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
     pagination,
   });
 });
-
-
-
-
-
 
 // Get Department By ID
 export const getDepartmentById = asyncWrapper(async (req, res, next) => {
