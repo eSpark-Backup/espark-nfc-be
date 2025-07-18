@@ -7,6 +7,9 @@ import {
   removeImage,
   attachPresignedImageUrl,
 } from '../utils/imageHelper.js';
+import { Department } from '../models/department.model.js';
+import { Employee } from '../models/employee.model.js';
+import { Admin } from '../models/admin.model.js';
 
 // Create Company Profile
 export const createCompanyProfile = asyncWrapper(async (req, res, next) => {
