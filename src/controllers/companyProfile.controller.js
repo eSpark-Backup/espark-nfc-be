@@ -129,6 +129,19 @@ export const deleteCompanyProfile = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Company profile not found'));
   }
 
+  const hasDepartments = await Department.exists({});
+  const hasAdmins = await Admin.exists({ role: 'admin' });
+  const hasEmployees = await Employee.exists({});
+
+  if (hasDepartments || hasAdmins || hasEmployees) {
+    return next(
+      new CustomError(
+        HTTP_STATUS.BAD_REQUEST,
+        'Cannot delete company profile while departments, admins, or employees exist'
+      )
+    );
+  }
+
   await removeImage(companyProfile, 'profile_image');
   await companyProfile.deleteOne();
 

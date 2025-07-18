@@ -27,6 +27,11 @@ const departmentSchema = new mongoose.Schema(
       required: [true, 'Image is required'],
     },
     ...auditFields,
+    company_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CompanyProfile',
+      required: true,
+    },
   },
   baseSchemaOptions
 );

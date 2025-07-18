@@ -31,10 +31,10 @@ import {
 import { requirePassword } from '../middlewares/requirePassword.js';
 import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
 import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
+import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 
 export const adminRoutes = express.Router();
 
-// Public for logged-in admin: Email verification
 adminRoutes
   .route('/send-email-verification')
   .post(verifyToken, emailVerificationRateLimiter, sendEmailVerificationCode);
@@ -53,7 +53,7 @@ adminRoutes
   );
 
 // Super admin-only routes
-adminRoutes.use(verifyToken, isSuperAdmin);
+adminRoutes.use(verifyToken, isSuperAdmin, companyProfileExists);
 
 // Create admin / Get all admins
 adminRoutes

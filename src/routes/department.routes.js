@@ -17,11 +17,12 @@ import {
 import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
 import { requirePassword } from '../middlewares/requirePassword.js';
 import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
+import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 
 export const departmentRoutes = express.Router();
 
 // Apply authentication to all department routes
-departmentRoutes.use(verifyToken);
+departmentRoutes.use(verifyToken, companyProfileExists);
 
 // Create and get all departments
 departmentRoutes

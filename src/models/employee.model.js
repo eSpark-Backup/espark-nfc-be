@@ -75,6 +75,11 @@ const employeeSchema = new mongoose.Schema(
       required: [true, 'Department is required'],
     },
     ...auditFields,
+    company_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CompanyProfile',
+      required: true,
+    },
   },
   baseSchemaOptions
 );

@@ -17,8 +17,7 @@ const adminSchema = new mongoose.Schema(
         validator: function (value) {
           return /^[A-Za-z][A-Za-z0-9\s]*$/.test(value);
         },
-        message:
-          'Full name must start with a letter and can include letters, numbers, and spaces',
+        message: 'Full name must start with a letter and can include letters, numbers, and spaces',
       },
     },
 
@@ -95,6 +94,13 @@ const adminSchema = new mongoose.Schema(
     last_login: {
       type: Date,
       default: null,
+    },
+    company_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CompanyProfile',
+      required: function () {
+        return this.role === 'admin';
+      },
     },
   },
   baseSchemaOptions
