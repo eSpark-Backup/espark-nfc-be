@@ -41,7 +41,7 @@ export const login = asyncWrapper(async (req, res, next) => {
   if (!admin.email_verified) {
     return res.status(HTTP_STATUS.OK).json({
       success: true,
-      message: 'Please verify your email address to continue.',
+      message: 'Please enter the verification code sent to your email to continue.',
       requires_verification: true,
       token,
       admin: formatAdminResponse(admin, includeImage),

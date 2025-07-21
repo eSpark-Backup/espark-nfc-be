@@ -9,6 +9,8 @@ import { employeeRoutes } from './routes/employee.routes.js';
 import { companyProfileRoutes } from './routes/companyProfile.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { globalRateLimiter } from './middlewares/rateLimiters.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './docs/swagger.js';
 
 export const app = express();
 
@@ -24,6 +26,8 @@ app.use(globalRateLimiter);
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API Routes
 app.use('/api/auth', authRoutes);
