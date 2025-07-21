@@ -18,7 +18,7 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 
-// app.use(globalRateLimiter);
+app.use(globalRateLimiter);
 
 // Health Check
 app.get('/api/health', (req, res) => {

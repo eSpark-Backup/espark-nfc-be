@@ -46,7 +46,7 @@ adminRoutes
   .route('/change-password')
   .put(
     verifyToken,
-    /* changePasswordRateLimiter,*/
+    changePasswordRateLimiter,
     validateChangeOwnPassword,
     validateRequest,
     changePassword
