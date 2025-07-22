@@ -56,7 +56,6 @@ adminRoutes
   .route('/send-email-verification')
   .post(verifyToken, emailVerificationRateLimiter, sendEmailVerificationCode);
 
-
 /**
  * @swagger
  * /admins/verify-email:
@@ -73,7 +72,7 @@ adminRoutes
  *             type: object
  *             properties:
  *               code:
- *               type: string
+ *                 type: string
  *     responses:
  *       200:
  *         description: Email verified successfully
@@ -143,11 +142,11 @@ adminRoutes.use(verifyToken, isSuperAdmin, companyProfileExists);
  *         multipart/form-data:
  *           schema:
  *             type: object
- *            required: 
+ *             required: 
  *              - full_name
  *              - email
  *              - phone_number
- *            - password
+ *              - password
  *             properties:
  *               full_name:
  *                 type: string
