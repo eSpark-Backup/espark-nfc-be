@@ -37,7 +37,7 @@ export const adminRoutes = express.Router();
 
 /**
  * @swagger
- * /admins/send-email-verification:
+ * /api/admins/send-email-verification:
  *   post:
  *     summary: Send email verification code to admin
  *     tags: [Admins]
@@ -58,7 +58,7 @@ adminRoutes
 
 /**
  * @swagger
- * /admins/verify-email:
+ * /api/admins/verify-email:
  *   post:
  *     summary: Verify admin email using the code
  *     tags: [Admins]
@@ -87,7 +87,7 @@ adminRoutes.route('/verify-email').post(verifyToken, verifyEmailCode);
 
 /**
  * @swagger
- * /admins/change-password:
+ * /api/admins/change-password:
  *   put:
  *     summary: Change password for logged-in admin
  *     tags: [Admins]
@@ -130,7 +130,7 @@ adminRoutes.use(verifyToken, isSuperAdmin, companyProfileExists);
 
 /**
  * @swagger
- * /admins:
+ * /api/admins:
  *   post:
  *     summary: Create a new admin (Super-admin only)
  *     tags: [Admins]
@@ -152,6 +152,7 @@ adminRoutes.use(verifyToken, isSuperAdmin, companyProfileExists);
  *                 type: string
  *               email:
  *                 type: string
+ *                 format: email
  *               phone_number:
  *                 type: string
  *               password:
@@ -172,9 +173,60 @@ adminRoutes.use(verifyToken, isSuperAdmin, companyProfileExists);
  *     tags: [Admins]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Page number (default is 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of records per page (default is 10, max is 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Keyword to search across name, email, or phone fields
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [full_name, email, phone_number, created_at, updated_at]
+ *         description: Field to sort by (default is created_at)
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order (default is desc)
  *     responses:
  *       200:
  *         description: List of admins
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Admin'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total_count:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *                     per_page:
+ *                       type: integer
  *       401:
  *         description: Unauthorized
  */
@@ -188,7 +240,7 @@ adminRoutes
 
 /**
  * @swagger
- * /admins/deleted:
+ * /api/admins/deleted:
  *   get:
  *     summary: Get all soft-deleted admins (Super-admin only)
  *     tags: [Admins]
@@ -207,7 +259,7 @@ adminRoutes.route('/deleted').get(getDeletedAdmins);
 
 /**
  * @swagger
- * /admins/{id}:
+ * /api/admins/{id}:
  *   get:
  *     summary: Get admin by ID (Super-admin only)
  *     tags: [Admins]
@@ -272,6 +324,18 @@ adminRoutes.route('/deleted').get(getDeletedAdmins);
  *           type: string
  *         required: true
  *         description: Admin ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 example: S.Admin123#
+ *             required:
+ *               - password
  *     responses:
  *       200:
  *         description: Admin deleted successfully
@@ -301,7 +365,7 @@ adminRoutes
 
 /**
  * @swagger
- * /admins/{id}/reset-password:
+ * /api/admins/{id}/reset-password:
  *   put:
  *     summary: Reset admin password by super-admin
  *     tags: [Admins]
@@ -342,7 +406,7 @@ adminRoutes
 
 /**
  * @swagger
- * /admins/{id}/restore:
+ * /api/admins/{id}/restore:
  *   put:
  *     summary: Restore soft-deleted admin
  *     tags: [Admins]

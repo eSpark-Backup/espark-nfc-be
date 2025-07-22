@@ -27,7 +27,7 @@ departmentRoutes.use(verifyToken, companyProfileExists);
 
 /**
  * @swagger
- * /departments:
+ * /api/departments:
  *   post:
  *     summary: Create a new department
  *     tags: [Departments]
@@ -63,7 +63,7 @@ departmentRoutes.use(verifyToken, companyProfileExists);
 
 /**
  * @swagger
- * /departments:
+ * /api/departments:
  *   get:
  *     summary: Get all departments
  *     tags: [Departments]
@@ -74,23 +74,59 @@ departmentRoutes.use(verifyToken, companyProfileExists);
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number
+ *           minimum: 1
+ *         description: Page number (default is 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Number of records per page
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of records per page (default is 10, max is 100)
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search by department name
+ *         description: Keyword to search department names
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [name, created_at, updated_at]
+ *         description: Field to sort by (default is created_at)
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order (default is desc)
  *     responses:
  *       200:
  *         description: List of departments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Department'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total_count:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *                     per_page:
+ *                       type: integer
  *       401:
  *         description: Unauthorized
  */
+
 
 // Create and get all departments
 departmentRoutes
@@ -101,7 +137,7 @@ departmentRoutes
 
 /**
  * @swagger
- * /departments/{id}:
+ * /api/departments/{id}:
  *   get:
  *     summary: Get a department by ID
  *     tags: [Departments]
@@ -126,7 +162,7 @@ departmentRoutes
  */
 /**
  * @swagger
- * /departments/{id}:
+ * /api/departments/{id}:
  *   patch:
  *     summary: Update a department by ID
  *     tags: [Departments]
@@ -167,7 +203,7 @@ departmentRoutes
 
 /**
  * @swagger
- * /departments/{id}:
+ * /api/departments/{id}:
  *   delete:
  *     summary: Delete a department by ID
  *     tags: [Departments]

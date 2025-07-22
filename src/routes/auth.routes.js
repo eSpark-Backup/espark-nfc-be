@@ -9,7 +9,7 @@ export const authRoutes = express.Router();
 
 /**
  * @swagger
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: Admin login
  *     tags: [Auth]
@@ -34,7 +34,7 @@ export const authRoutes = express.Router();
  *                 example: admin123
  *     responses:
  *       200:
- *         description: Login successful or requires email verification
+ *         description: Login successful
  *         content:
  *           application/json:
  *             schema:

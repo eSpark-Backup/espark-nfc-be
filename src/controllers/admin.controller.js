@@ -273,7 +273,7 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
   }
 
-  await removeImage(admin);
+  await removeImage(admin, 'profile_image');
 
   admin.is_deleted = true;
   admin.is_active = false;
@@ -301,20 +301,15 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-// Restore Admin
+// Restore Deleted Admin
 export const restoreAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  const admin = await Admin.findById(id);
-  if (!admin || admin.role !== 'admin') {
-    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found'));
-  }
+  // Only fetch admin if it's soft deleted
+  const admin = await Admin.findOne({ _id: id, role: 'admin', is_deleted: true });
 
-  if (!admin.is_deleted) {
-    return next(
-      new CustomError(HTTP_STATUS.BAD_REQUEST, 'This admin is already active or not deleted')
-    );
+  if (!admin) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Admin not found or already active'));
   }
 
   admin.is_deleted = false;
@@ -335,6 +330,7 @@ export const restoreAdmin = asyncWrapper(async (req, res, next) => {
     admin,
   });
 });
+
 
 // Change Own Password
 export const changePassword = asyncWrapper(async (req, res, next) => {

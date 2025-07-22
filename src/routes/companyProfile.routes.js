@@ -32,7 +32,7 @@ companyProfileRoutes.use(verifyToken, isSuperAdmin);
 
 /**
  * @swagger
- * /company-profile:
+ * /api/company-profile:
  *   post:
  *     summary: Create a new company profile
  *     tags: [Company Profile]
@@ -76,7 +76,7 @@ companyProfileRoutes.use(verifyToken, isSuperAdmin);
 
 /**
  * @swagger
- * /company-profile/:
+ * /api/company-profile:
  *   get:
  *     summary: Get the company profile
  *     tags: [Company Profile]
@@ -93,7 +93,7 @@ companyProfileRoutes.use(verifyToken, isSuperAdmin);
 
 /**
  * @swagger
- * /company-profile/:
+ * /api/company-profile:
  *   patch:
  *     summary: Update the company profile
  *     tags: [Company Profile]
@@ -135,7 +135,7 @@ companyProfileRoutes.use(verifyToken, isSuperAdmin);
 
 /**
  * @swagger
- * /company-profile/:
+ * /api/company-profile:
  *   delete:
  *     summary: Delete the company profile
  *     tags: [Company Profile]

@@ -27,7 +27,7 @@ employeeRoutes.use(verifyToken, companyProfileExists);
 
 /**
  * @swagger
- * /employees:
+ * /api/employees:
  *   post:
  *     summary: Create a new employee
  *     tags: [Employee]
@@ -74,17 +74,18 @@ employeeRoutes.use(verifyToken, companyProfileExists);
  *               profile_image:
  *                 type: string
  *                 format: binary
- *               social_links:
- *                 type: object
- *                 properties:
- *                   facebook:
- *                     type: string
- *                   twitter:
- *                     type: string
- *                   instagram:
- *                     type: string
- *                   youtube:
- *                     type: string
+ *               facebook:
+ *                 type: string
+ *                 format: uri
+ *               twitter:
+ *                 type: string
+ *                 format: uri
+ *               instagram:
+ *                 type: string
+ *                 format: uri
+ *               youtube:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       201:
  *         description: Employee created successfully
@@ -96,7 +97,7 @@ employeeRoutes.use(verifyToken, companyProfileExists);
 
 /**
  * @swagger
- * /employees:
+ * /api/employees:
  *   get:
  *     summary: Get all employees
  *     tags: [Employee]
@@ -104,28 +105,58 @@ employeeRoutes.use(verifyToken, companyProfileExists);
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Search term for filtering employees
- *       - in: query
- *         name: sort
- *         schema:
- *           type: string
- *         description: Field to sort by (e.g., name)
- *       - in: query
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number for pagination
+ *           minimum: 1
+ *         description: Page number (default is 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Number of items per page
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of records per page (default is 10, max is 100)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Keyword to search across employee fields like name, email, or phone
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           enum: [full_name, email, phone_number, department, created_at, updated_at]
+ *         description: Field to sort by (default is created_at)
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order (default is desc)
  *     responses:
  *       200:
  *         description: List of employees
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Employee'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total_count:
+ *                       type: integer
+ *                     current_page:
+ *                       type: integer
+ *                     total_pages:
+ *                       type: integer
+ *                     per_page:
+ *                       type: integer
  *       401:
  *         description: Unauthorized
  */
@@ -139,7 +170,7 @@ employeeRoutes
 
 /**
  * @swagger
- * /employees/{id}:
+ * /api/employees/{id}:
  *   get:
  *     summary: Get an employee by ID
  *     tags: [Employee]
@@ -165,7 +196,7 @@ employeeRoutes
 
 /**
  * @swagger
- * /employees/{id}:
+ * /api/employees/{id}:
  *   patch:
  *     summary: Update an employee by ID
  *     tags: [Employee]
@@ -208,17 +239,18 @@ employeeRoutes
  *               profile_image:
  *                 type: string
  *                 format: binary
- *               social_links:
- *                 type: object
- *                 properties:
- *                   facebook:
- *                     type: string
- *                   twitter:
- *                     type: string
- *                   instagram:
- *                     type: string
- *                   youtube:
- *                     type: string
+ *               facebook:
+ *                 type: string
+ *                 format: uri
+ *               twitter:
+ *                 type: string
+ *                 format: uri
+ *               instagram:
+ *                 type: string
+ *                 format: uri
+ *               youtube:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       200:
  *         description: Employee updated successfully
@@ -230,9 +262,10 @@ employeeRoutes
  *         description: Employee not found
  */
 
+
 /**
  * @swagger
- * /employees/{id}:
+ * /api/employees/{id}:
  *   delete:
  *     summary: Delete an employee by ID
  *     tags: [Employee]
