@@ -44,7 +44,7 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     phone_number,
     password,
     role: 'admin',
-    created_by: req.admin?.id || null,
+    created_by: req.admin?.id,
     company_id: companyProfile?._id
   });
 
@@ -53,9 +53,6 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     const { image_key, image_url } = await uploadImage(req.file.buffer, 'admin');
     admin.profile_image = { image_key, image_url };
   }
-
-  // Save admin (first time to generate ID)
-  await admin.save();
 
   // Set email verification code and expiry
   const code = crypto.randomInt(100000, 999999).toString();
@@ -70,18 +67,14 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     code,
   });
 
-  // Fetch updated admin without password
   const savedAdmin = await Admin.findById(admin._id).select('-password');
 
-  // Attach signed URL to image (if key exists)
   await attachPresignedImageUrl(savedAdmin, 'profile_image');
 
-  // Clean up response
   if (savedAdmin?.profile_image) {
     delete savedAdmin.profile_image.image_key;
   }
 
-  // Final response
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
     message:
@@ -204,7 +197,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     admin.email = email;
     admin.email_verified = false;
     admin.email_verification_code = newCode;
-    admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    admin.email_verification_expires = new Date(Date.now() + 10 * 60 * 1000);
 
     await sendVerificationEmail({
       to: email,
@@ -237,7 +230,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
     });
   }
 
-  admin.updated_by = req.admin?.id || null;
+  admin.updated_by = req.admin?.id;
   await admin.save();
 
   const savedAdmin = await Admin.findById(admin._id).select(
@@ -252,7 +245,7 @@ export const updateAdmin = asyncWrapper(async (req, res, next) => {
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: emailChanged
-      ? 'Admin updated successfully. A verification code has been sent to the new email address. Verify it to continue using the system.'
+      ? 'Admin updated successfully. A verification code has been sent to the new email address. Please verify it to continue using the system.'
       : 'Admin updated successfully',
     admin: savedAdmin,
   });
@@ -277,7 +270,7 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
 
   admin.is_deleted = true;
   admin.is_active = false;
-  admin.updated_by = req.admin?.id || null;
+  admin.updated_by = req.admin?.id;
   await admin.save();
 
   const modelsToUpdate = [Department, Employee];
@@ -305,7 +298,6 @@ export const deleteAdmin = asyncWrapper(async (req, res, next) => {
 export const restoreAdmin = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  // Only fetch admin if it's soft deleted
   const admin = await Admin.findOne({ _id: id, role: 'admin', is_deleted: true });
 
   if (!admin) {
@@ -314,7 +306,7 @@ export const restoreAdmin = asyncWrapper(async (req, res, next) => {
 
   admin.is_deleted = false;
   admin.is_active = true;
-  admin.updated_by = req.admin?.id || null;
+  admin.updated_by = req.admin?.id;
   await admin.save();
 
   await sendAdminRestorationEmail({
