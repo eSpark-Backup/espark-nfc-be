@@ -110,11 +110,11 @@ This user will have access to all modules including:
 
 ### ✅ Departments
 - Full CRUD available
-- **Many-to-Many** relationship with employees
+- One Department can have multiple employees
 
 ### ✅ Employees
 - Full CRUD available
-- Can belong to multiple departments
+- Multiple employees can belong to a single department
 
 ---
 
