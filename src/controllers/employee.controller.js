@@ -123,6 +123,8 @@ export const getEmployees = asyncWrapper(async (req, res) => {
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
+  await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
+
   const employee = await Employee.findById(id)
     .populate('department_id', 'name email')
     .populate('created_by', 'full_name email')
@@ -276,3 +278,31 @@ export const deleteEmployee = asyncWrapper(async (req, res, next) => {
     message: 'Employee deleted successfully',
   });
 });
+
+// GET /api/employees/reports
+export const getEmployeeReports = asyncWrapper(async (req, res, next) => {
+  
+  let query = Employee.find({}, 'name designation profile_image view_count');
+
+  const { results: employees, pagination } = await applyQueryOptions(
+    Employee,
+    query,
+    req.query,
+    ['name', 'designation'],
+    ['view_count', 'name', 'designation', 'created_at']
+  );
+
+  // Attach pre-signed URLs in parallel for performance
+  await Promise.all(
+    employees.map(emp => attachPresignedImageUrl(emp, 'profile_image'))
+  );
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Employee reports fetched successfully',
+    data: employees,
+    pagination,
+  });
+});
+
+

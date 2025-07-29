@@ -80,6 +80,10 @@ const employeeSchema = new mongoose.Schema(
       ref: 'CompanyProfile',
       required: true,
     },
+    view_count: {
+      type: Number,
+      default: 0,
+    },
   },
   baseSchemaOptions
 );
@@ -93,5 +97,6 @@ employeeSchema.virtual('department', {
 
 employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
+employeeSchema.index({ view_count: -1 });
 
 export const Employee = mongoose.model('Employee', employeeSchema);

@@ -5,6 +5,7 @@ import {
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
+  getEmployeeReports,
 } from '../controllers/employee.controller.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
@@ -300,6 +301,22 @@ employeeRoutes
  *         description: Employee not found
  */
 
+
+ /**
+ * @swagger
+ * /api/employees/reports:
+ *   get:
+ *     summary: Get employee reports (name, designation, view count, and profile image)
+ *     tags: [Employee]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employee reports fetched successfully
+ */
+employeeRoutes
+  .route('/reports')
+  .get(getEmployeeReports);
 
 // Get, update, and delete employee by ID
 employeeRoutes
