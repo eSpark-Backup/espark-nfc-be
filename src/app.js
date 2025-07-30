@@ -27,11 +27,7 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  swaggerOptions: {
-    persistAuthorization: true
-  }
-}));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API Routes
 app.use('/api/auth', authRoutes);
