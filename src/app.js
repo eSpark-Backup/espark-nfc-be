@@ -16,6 +16,7 @@ export const app = express();
 
 // Core Middlewares
 app.use(cors());
+app.use(cors({ origin: true }));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
