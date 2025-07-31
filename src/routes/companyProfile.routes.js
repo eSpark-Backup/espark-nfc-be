@@ -13,9 +13,6 @@ import {
   validateCreateCompanyProfile,
   validateUpdateCompanyProfile,
 } from '../validators/companyProfile.validator.js';
-import { requirePassword } from '../middlewares/requirePassword.js';
-import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
-import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 
 export const companyProfileRoutes = express.Router();
 
@@ -180,9 +177,6 @@ companyProfileRoutes
     updateCompanyProfile
   )
   .delete(
-    requirePassword,
-    reenteredPasswordValidator,
-    verifyReenteredPassword,
     deleteCompanyProfile
   );
 

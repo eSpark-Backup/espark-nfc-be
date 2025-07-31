@@ -15,8 +15,14 @@ import { swaggerSpec } from './docs/swaggerConfig.js';
 export const app = express();
 
 // Core Middlewares
-app.use(cors());
-app.use(cors({ origin: true }));
+// Core Middlewares
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false
+}));
+app.options('*', cors()); // Preflight
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());

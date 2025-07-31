@@ -14,9 +14,6 @@ import {
   validateUpdateDepartment,
   validateDepartmentId,
 } from '../validators/department.validator.js';
-import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
-import { requirePassword } from '../middlewares/requirePassword.js';
-import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 
 export const departmentRoutes = express.Router();
@@ -249,4 +246,4 @@ departmentRoutes
     validateRequest,
     updateDepartment
   )
-  .delete(requirePassword, validateDepartmentId, reenteredPasswordValidator, validateRequest, verifyReenteredPassword, deleteDepartment);
+  .delete(validateDepartmentId, validateRequest, deleteDepartment);

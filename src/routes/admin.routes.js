@@ -28,9 +28,6 @@ import {
   resetPasswordRateLimiter,
   changePasswordRateLimiter,
 } from '../middlewares/rateLimiters.js';
-import { requirePassword } from '../middlewares/requirePassword.js';
-import { verifyReenteredPassword } from '../middlewares/verifyReenteredPassword.js';
-import { reenteredPasswordValidator } from '../validators/shared/reenteredPasswordValidator.js';
 import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 
 export const adminRoutes = express.Router();
@@ -355,11 +352,8 @@ adminRoutes
     updateAdmin
   )
   .delete(
-    requirePassword,
     validateAdminId,
-    reenteredPasswordValidator,
     validateRequest,
-    verifyReenteredPassword,
     deleteAdmin
   );
 
