@@ -21,8 +21,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false
-}));
-app.options('*', cors()); // Preflight
+})); // Preflight
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
