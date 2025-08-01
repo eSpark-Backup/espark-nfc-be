@@ -23,8 +23,7 @@ const departmentSchema = new mongoose.Schema(
       },
     },
     image: {
-      type: imageSchema,
-      required: [true, 'Image is required'],
+      type: imageSchema
     },
     ...auditFields,
     company_id: {

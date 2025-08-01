@@ -167,6 +167,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     twitter,
     instagram,
     youtube,
+    profile_image,
     ...fieldsToUpdate
   } = req.body;
 
@@ -181,6 +182,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const isSameEmail = employee.email === normalizedEmail;
   const isSamePhone = employee.phone_number === normalizedPhone;
 
+  // Check for duplicate email or phone if changed
   if (!isSameEmail || !isSamePhone) {
     const duplicate = await checkDuplicateEmployee({
       email: normalizedEmail,
@@ -196,16 +198,19 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   let updated = false;
 
+  // Update email
   if (email && email !== employee.email) {
     employee.email = email;
     updated = true;
   }
 
+  // Update phone number
   if (phone_number && phone_number !== employee.phone_number) {
     employee.phone_number = phone_number;
     updated = true;
   }
 
+  // Update department if changed
   if (department_id && department_id !== employee.department_id?.toString()) {
     const department = await Department.findById(department_id);
     if (!department) {
@@ -215,7 +220,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  // Update social links
+  // Update social links if any changed
   const socialLinksChanged = ['facebook', 'twitter', 'instagram', 'youtube'].some(
     (key) => (employee.social_links?.[key] || '') !== req.body[key]
   );
@@ -233,36 +238,28 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     }
   });
 
+  // Handle image updates
   if (req.file) {
+    // Replace existing image with a new one
     await replaceImage(employee, req.file.buffer, 'employee', 'profile_image');
     updated = true;
-  } else if (
-    'profile_image' in req.body &&
-    (!req.body.profile_image || req.body.profile_image === 'null')
-  ) {
+  } else if (profile_image === null || profile_image === 'null') {
+    // Remove image if explicitly set to null
     await removeImage(employee, 'profile_image');
-    employee.profile_image = undefined;
+    employee.profile_image = null;
     updated = true;
   }
 
-  // Require image to exist after update
-  if (!employee.profile_image?.image_key && !req.file) {
-    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Profile image is required'));
+  // Save if updated
+  if (updated) {
+    employee.updated_by = req.admin?.id || null;
+    await employee.save();
   }
 
-  if (!updated) {
+  // Always attach signed URL for image (whether changed or not)
+  if (employee.profile_image?.image_key) {
     await attachPresignedImageUrl(employee, 'profile_image');
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Employee updated successfully',
-      employee,
-    });
   }
-
-  employee.updated_by = req.admin?.id || null;
-  await employee.save();
-
-  await attachPresignedImageUrl(employee, 'profile_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -270,6 +267,8 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     employee,
   });
 });
+
+
 
 
 

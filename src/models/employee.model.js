@@ -67,7 +67,6 @@ const employeeSchema = new mongoose.Schema(
     },
     profile_image: {
       type: imageSchema,
-      required: [true, 'Profile image is required'],
     },
     department_id: {
       type: mongoose.Schema.Types.ObjectId,

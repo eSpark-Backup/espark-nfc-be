@@ -193,8 +193,6 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   if (req.file) {
     await replaceImage(department, req.file.buffer, 'department');
     updated = true;
-  } else if (!department.image?.image_key) {
-    return next(new CustomError(HTTP_STATUS.BAD_REQUEST, 'Image is required'));
   }
 
   if (!updated) {

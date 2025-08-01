@@ -46,7 +46,6 @@ const companyProfileSchema = new mongoose.Schema(
     },
     profile_image: {
       type: imageSchema,
-      required: [true, 'Profile image is required'],
     },
     ...auditFields,
   },
