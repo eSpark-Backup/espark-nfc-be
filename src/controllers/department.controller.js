@@ -242,3 +242,15 @@ export const deleteDepartment = asyncWrapper(async (req, res, next) => {
     message: 'Department deleted successfully',
   });
 });
+
+// Get Total Department Count
+export const getDepartmentCount = asyncWrapper(async (req, res) => {
+  const count = await Department.countDocuments();
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Total department count fetched successfully',
+    total_departments: count,
+  });
+});
+

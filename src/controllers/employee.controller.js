@@ -63,7 +63,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     created_by: req.admin?.id || null,
     updated_by: null,
     company_id: companyProfile?._id
-  };
+  }
 
   if (req.file) {
     const { image_key, image_url } = await uploadImage(req.file.buffer, 'employee');
@@ -71,6 +71,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
   }
 
   const employee = await Employee.create(employeeData);
+
+  await employee.populate('department_id', 'name email');
 
   if (employee?.profile_image?.image_key) {
     await attachPresignedImageUrl(employee, 'profile_image');
@@ -115,6 +117,16 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     message: employeesWithExtras.length ? 'Employees fetched successfully' : 'No employees found',
     employees: employeesWithExtras,
     pagination,
+  });
+});
+
+// Get Employee Count
+export const getEmployeeCount = asyncWrapper(async (req, res) => {
+  const totalEmployees = await Employee.countDocuments();
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Total number of employees fetched successfully',
+    total_employees: totalEmployees,
   });
 });
 

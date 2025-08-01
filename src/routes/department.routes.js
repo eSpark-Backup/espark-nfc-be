@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createDepartment,
   getAllDepartments,
+  getDepartmentCount,
   getDepartmentById,
   updateDepartment,
   deleteDepartment,
@@ -134,6 +135,33 @@ departmentRoutes
 
 /**
  * @swagger
+ * /api/departments/count:
+ *   get:
+ *     summary: Get total number of departments
+ *     tags: [Departments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total number of departments fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 total_departments:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ */
+departmentRoutes.get('/count', getDepartmentCount);
+
+/**
+ * @swagger
  * /api/departments/{id}:
  *   get:
  *     summary: Get a department by ID
@@ -235,6 +263,7 @@ departmentRoutes
  *         description: Unauthorized
  */
 
+
 // Get, update, and delete department by ID
 departmentRoutes
   .route('/:id')
@@ -247,3 +276,5 @@ departmentRoutes
     updateDepartment
   )
   .delete(validateDepartmentId, validateRequest, deleteDepartment);
+
+  

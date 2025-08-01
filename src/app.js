@@ -22,7 +22,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false
 }));
-app.options('*', cors()); // Preflight
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());

@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createEmployee,
   getEmployees,
+  getEmployeeCount,
   getEmployeeById,
   updateEmployee,
   deleteEmployee,
@@ -165,6 +166,38 @@ employeeRoutes
   .post(upload.single('profile_image'), validateCreateEmployee, validateRequest, createEmployee)
   .get(getEmployees);
 
+
+/**
+ * @swagger
+ * /api/employees/count:
+ *   get:
+ *     summary: Get total number of employees
+ *     tags: [Employees]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total number of employees fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Total employee count fetched successfully
+ *                 total_employees:
+ *                   type: integer
+ *                   example: 120
+ *       401:
+ *         description: Unauthorized
+ */
+
+employeeRoutes.route('/count')
+  .get(getEmployeeCount);
 
 /**
  * @swagger
