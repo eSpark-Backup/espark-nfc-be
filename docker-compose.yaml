@@ -26,11 +26,11 @@ services:
       S3_ENDPOINT: s3.ap-south-1.amazonaws.com
 
       # Email / SMTP
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 465
-      EMAIL_USER: testingnodemailer985@gmail.com
-      EMAIL_PASS: "vbqd ukhc tkcj xbvg"
-      EMAIL_FROM: testingnodemailer985@gmail.com
+      SMTP_HOST: smtp.office365.com
+      SMTP_PORT: 587
+      EMAIL_USER: sapb1@eurosystems.com
+      EMAIL_PASS: "Caz99435%"
+      EMAIL_FROM: sapb1@eurosystems.com
       EMAIL_FROM_NAME: "NFC Workforce Manager"
 
       # Super Admin Secret
