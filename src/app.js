@@ -25,6 +25,7 @@ app.use(cors({
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
+app.set('trust proxy', true);
 
 app.use(globalRateLimiter);
 
