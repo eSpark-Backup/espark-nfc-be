@@ -39,7 +39,7 @@ const promptForSecret = async (expectedSecret) => {
   return false;
 };
 
-const createSuperAdmin = async () => {
+export const createSuperAdmin = async () => {
   try {
     await connectDB();
 

@@ -11,6 +11,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { globalRateLimiter } from './middlewares/rateLimiters.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swaggerConfig.js';
+import {createSuperAdmin} from '../scripts/createSuperAdmin.js'
 
 export const app = express();
 
@@ -27,6 +28,8 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 app.use(globalRateLimiter);
+    await createSuperAdmin();
+
 
 // Health Check
 app.get('/api/health', (req, res) => {
