@@ -15,7 +15,6 @@ import { swaggerSpec } from './docs/swaggerConfig.js';
 export const app = express();
 
 // Core Middlewares
-// Core Middlewares
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -28,6 +27,7 @@ app.use(express.json());
 app.set('trust proxy', true);
 
 app.use(globalRateLimiter);
+
 
 // Health Check
 app.get('/api/health', (req, res) => {

@@ -39,18 +39,16 @@ const promptForSecret = async (expectedSecret) => {
   return false;
 };
 
-const createSuperAdmin = async () => {
+export const createSuperAdmin = async () => {
   try {
-    await connectDB();
-
     const existingSuperAdmin = await Admin.findOne({ role: 'super-admin' });
     if (existingSuperAdmin) {
-      console.log('\nA super-admin already exists. Creation aborted.');
-      return mongoose.connection.close();
+      console.log('✅ A super-admin already exists.');
+      return;
     }
 
     const secretPassed = await promptForSecret(envConfig.superAdmin.secret);
-    if (!secretPassed) return mongoose.connection.close();
+    if (!secretPassed) return;
 
     console.log('\nSecret verified. Proceeding with Super Admin Creation Wizard.\n');
 
@@ -115,7 +113,7 @@ const createSuperAdmin = async () => {
 
     if (existing) {
       console.log('\nAn admin with this email or phone number already exists.');
-      return mongoose.connection.close();
+      return;
     }
 
     const admin = new Admin({
@@ -129,12 +127,25 @@ const createSuperAdmin = async () => {
 
     await admin.save();
 
-    console.log('\nSuper admin created successfully!');
+    console.log('\n✅ Super admin created successfully!');
   } catch (err) {
-    console.error('\nError creating super admin:', err.message);
+    console.error('\n❌ Error creating super admin:', err.message);
+  }
+};
+
+// Standalone execution when run directly
+const runStandalone = async () => {
+  try {
+    await connectDB();
+    await createSuperAdmin();
+  } catch (err) {
+    console.error('\nError:', err.message);
   } finally {
     mongoose.connection.close();
   }
 };
 
-createSuperAdmin();
+// Only run standalone if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runStandalone();
+}
