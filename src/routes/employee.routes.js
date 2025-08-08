@@ -21,7 +21,7 @@ import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 export const employeeRoutes = express.Router();
 
 // Apply authentication middleware to all routes
-employeeRoutes.use(verifyToken, companyProfileExists);
+// employeeRoutes.use(verifyToken, companyProfileExists);
 
 
 /**

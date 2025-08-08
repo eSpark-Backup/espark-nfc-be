@@ -171,7 +171,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     ...fieldsToUpdate
   } = req.body;
 
-  const employee = await Employee.findById(id);
+  const employee = await Employee.findById(id)
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
@@ -255,6 +255,11 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     employee.updated_by = req.admin?.id || null;
     await employee.save();
   }
+
+  await employee.populate({
+    path: 'department_id',
+    select: 'name email',
+  });
 
   // Always attach signed URL for image (whether changed or not)
   if (employee.profile_image?.image_key) {
