@@ -6,6 +6,7 @@ import {
   getDepartmentById,
   updateDepartment,
   deleteDepartment,
+  getDepartmentsDropdown,
 } from '../controllers/department.controller.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 import { upload } from '../middlewares/imageUpload.js';
@@ -160,6 +161,47 @@ departmentRoutes
  */
 departmentRoutes.get('/count', getDepartmentCount);
 
+
+/**
+ * @swagger
+ * /api/departments/dropdown:
+ *   get:
+ *     summary: Get all departments for dropdown (id and name only)
+ *     tags: [Departments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Departments for dropdown fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 departments:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Department ID
+ *                       name:
+ *                         type: string
+ *                         description: Department name
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: No departments found
+ */
+departmentRoutes.get('/dropdown', getDepartmentsDropdown);
+
+
+
 /**
  * @swagger
  * /api/departments/{id}:
@@ -276,5 +318,7 @@ departmentRoutes
     updateDepartment
   )
   .delete(validateDepartmentId, validateRequest, deleteDepartment);
+
+  
 
   

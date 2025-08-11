@@ -252,3 +252,17 @@ export const getDepartmentCount = asyncWrapper(async (req, res) => {
   });
 });
 
+export const getDepartmentsDropdown = asyncWrapper(async (req, res) => {
+  const departments = await Department.find({}, { _id: 1, name: 1 })
+    .sort({ name: 1 });
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: departments.length
+      ? 'Departments for dropdown fetched successfully'
+      : 'No departments found',
+    departments,
+  });
+});
+
+
