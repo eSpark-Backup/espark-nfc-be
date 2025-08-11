@@ -82,16 +82,7 @@ const employeeSchema = new mongoose.Schema(
     view_count: {
       type: Number,
       default: 0,
-    },
-    website_url: {
-      type: String,
-      trim: true,
-      validate: {
-        validator: (v) =>
-          !v || validator.isURL(v, { protocols: ['http', 'https'], require_protocol: true }),
-        message: 'Invalid website URL format',
-      },
-    },
+    }
   },
   baseSchemaOptions
 );
