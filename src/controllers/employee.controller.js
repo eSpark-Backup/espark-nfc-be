@@ -134,16 +134,41 @@ export const getEmployeeCount = asyncWrapper(async (req, res) => {
 
 
 // Get Employee By ID
+// export const getEmployeeById = asyncWrapper(async (req, res, next) => {
+//   const { id } = req.params;
+
+//   await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
+
+//   const employee = await Employee.findById(id)
+//     .populate('department_id', 'name email')
+//     .populate('created_by', 'full_name email')
+//     .populate('updated_by', 'full_name email')
+//     .populate('company_id', 'company_name');
+
+//   if (!employee) {
+//     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
+//   }
+
+//   await attachPresignedImageUrl(employee, 'profile_image');
+
+//   res.status(HTTP_STATUS.OK).json({
+//     success: true,
+//     message: 'Employee fetched successfully',
+//     employee,
+//   });
+// });
+
+// Get Employee By ID
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
   await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
 
+
   const employee = await Employee.findById(id)
     .populate('department_id', 'name email')
     .populate('created_by', 'full_name email')
-    .populate('updated_by', 'full_name email')
-    .populate('company_id', 'company_name');
+    .populate('updated_by', 'full_name email');
 
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
@@ -151,12 +176,19 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 
   await attachPresignedImageUrl(employee, 'profile_image');
 
+  const company = await CompanyProfile.findOne();
+  if (company?.profile_image?.image_key) {
+    await attachPresignedImageUrl(company, 'profile_image');
+  }
+
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Employee fetched successfully',
     employee,
+    company,
   });
 });
+
 
 // Update Employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
