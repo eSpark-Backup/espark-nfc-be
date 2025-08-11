@@ -22,8 +22,6 @@ import { Employee } from '../models/employee.model.js';
 // Create Admin
 export const createAdmin = asyncWrapper(async (req, res, next) => {
 
-  const companyProfile = await CompanyProfile.findOne();
-
   const { full_name, email, phone_number, password } = req.body;
 
   // Check for duplicates
@@ -45,7 +43,7 @@ export const createAdmin = asyncWrapper(async (req, res, next) => {
     password,
     role: 'admin',
     created_by: req.admin?.id,
-    company_id: companyProfile?._id
+    company_id: req.companyProfile?._id
   });
 
   // Handle image upload if provided
