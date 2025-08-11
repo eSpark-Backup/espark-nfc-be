@@ -85,6 +85,9 @@ employeeRoutes.use(verifyToken, companyProfileExists);
  *               youtube:
  *                 type: string
  *                 format: uri
+ *               website_url:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       201:
  *         description: Employee created successfully
@@ -280,6 +283,9 @@ employeeRoutes.route('/count')
  *                 type: string
  *                 format: uri
  *               youtube:
+ *                 type: string
+ *                 format: uri
+ *               website_url:
  *                 type: string
  *                 format: uri
  *     responses:
