@@ -113,6 +113,12 @@ export const validateCreateEmployee = [
     .toLowerCase()
     .isURL()
     .withMessage('Invalid YouTube URL'),
+
+  body('website_url')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isURL({ protocols: ['http', 'https'], require_protocol: true })
+    .withMessage('Invalid website URL'),
 ];
 
 export const validateUpdateEmployee = [
@@ -235,6 +241,12 @@ export const validateUpdateEmployee = [
     .toLowerCase()
     .isURL()
     .withMessage('Invalid YouTube URL'),
+
+  body('website_url')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isURL({ protocols: ['http', 'https'], require_protocol: true })
+    .withMessage('Invalid website URL'),
 ];
 
 export const validateEmployeeId = [param('id').isMongoId().withMessage('Invalid employee ID')];

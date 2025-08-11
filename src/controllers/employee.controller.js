@@ -32,6 +32,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     twitter,
     instagram,
     youtube,
+    website_url
   } = req.body;
 
   const duplicate = await checkDuplicateEmployee({ email, phone_number, Employee });
@@ -60,6 +61,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       instagram,
       youtube,
     },
+    website_url,
     created_by: req.admin?.id || null,
     updated_by: null,
     company_id: companyProfile?._id
@@ -168,6 +170,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     instagram,
     youtube,
     profile_image,
+    website_url,
     ...fieldsToUpdate
   } = req.body;
 
@@ -227,6 +230,11 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   if (socialLinksChanged) {
     employee.social_links = { facebook, twitter, instagram, youtube };
+    updated = true;
+  }
+
+  if (website_url !== undefined && website_url !== employee.website_url) {
+    employee.website_url = website_url;
     updated = true;
   }
 
