@@ -18,10 +18,25 @@ export const sendVerificationEmail = async ({ to, name, code }) => {
     to,
     subject: 'Verify Your Email Address',
     html: `
-      <p>Hello ${name},</p>
-      <p>Your email verification code is: <strong>${code}</strong></p>
-      <p>This code will expire in 10 minutes.</p>
-    `,
+    <div style="text-align:center; margin-bottom:20px;">
+  <img 
+    src="https://s3.ap-southeast-1.amazonaws.com/espark-nfc-project/1755504322030-logo-1755504322029.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAXW5OGZH2FVQHOXV2%2F20250818%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20250818T080522Z&X-Amz-Expires=604800&X-Amz-Signature=89559eebd112987ac17df4b2ee4f750bc71dae4481734242390dad222b9d50d7&X-Amz-SignedHeaders=host"
+    alt="Company Logo"
+    style="max-width:150px; height:auto;"
+  />
+</div>
+  <div style="background:#f9fafb;padding:20px;font-family:Arial,sans-serif;">
+    <div style="width:100%;max-width:500px;margin:0 auto;background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+      <h2 style="color:#2563eb;text-align:center;margin-bottom:20px;font-size:20px;">Verify Your Email</h2>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">Hello ${name},</p>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">Your verification code is:</p>
+      <div style="font-size:28px;font-weight:bold;color:#2563eb;text-align:center;margin:20px 0;">
+        ${code}
+      </div>
+      <p style="color:#6b7280;font-size:14px;line-height:1.5;">This code will expire in 10 minutes.</p>
+    </div>
+  </div>
+`,
   };
 
   await transporter.sendMail(mailOptions);
@@ -34,11 +49,31 @@ export const sendAdminRestorationEmail = async ({ to, name }) => {
     to,
     subject: 'Your Admin Account Has Been Restored',
     html: `
-      <p>Hello ${name},</p>
-      <p>Your admin account has been <strong>restored</strong> by the system administrator.</p>
-      <p>You can now log in again and continue using the system as before.</p>
-      <p>If you believe this was a mistake or have questions, please contact support.</p>
-    `,
+    <div style="text-align:center; margin-bottom:20px;">
+  <img 
+    src="https://s3.ap-southeast-1.amazonaws.com/espark-nfc-project/1755504322030-logo-1755504322029.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAXW5OGZH2FVQHOXV2%2F20250818%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20250818T080522Z&X-Amz-Expires=604800&X-Amz-Signature=89559eebd112987ac17df4b2ee4f750bc71dae4481734242390dad222b9d50d7&X-Amz-SignedHeaders=host"
+    alt="Company Logo"
+    style="max-width:150px; height:auto;"
+  />
+</div>
+  <div style="background:#f9fafb;padding:20px;font-family:Arial,sans-serif;">
+    <div style="width:100%;max-width:500px;margin:0 auto;background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+      <h2 style="color:#2563eb;text-align:center;margin-bottom:20px;font-size:20px;">Admin Account Restored</h2>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">Hello ${name},</p>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">
+        Your admin account has been <strong>restored</strong> by the system administrator.
+      </p>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">
+        You can now log in again and continue using the system.
+      </p>
+      <div style="text-align:center;margin-top:30px;">
+        <a href="${envConfig.appUrl}/login" style="background:#2563eb;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-size:16px;display:inline-block;">
+          Login Now
+        </a>
+      </div>
+    </div>
+  </div>
+`,
   };
 
   await transporter.sendMail(mailOptions);
@@ -50,10 +85,26 @@ export const sendAdminDeletionEmail = async ({ to, name }) => {
     to,
     subject: 'Your Admin Account Has Been Deactivated',
     html: `
-      <p>Hello ${name},</p>
-      <p>Your admin account has been <strong>deactivated</strong> by the system administrator.</p>
-      <p>If you believe this was done in error, please contact support.</p>
-    `,
+    <div style="text-align:center; margin-bottom:20px;">
+  <img 
+    src="https://s3.ap-southeast-1.amazonaws.com/espark-nfc-project/1755504322030-logo-1755504322029.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAXW5OGZH2FVQHOXV2%2F20250818%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20250818T080522Z&X-Amz-Expires=604800&X-Amz-Signature=89559eebd112987ac17df4b2ee4f750bc71dae4481734242390dad222b9d50d7&X-Amz-SignedHeaders=host"
+    alt="Company Logo"
+    style="max-width:150px; height:auto;"
+  />
+</div>
+  <div style="background:#f9fafb;padding:20px;font-family:Arial,sans-serif;">
+    <div style="width:100%;max-width:500px;margin:0 auto;background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
+      <h2 style="color:#dc2626;text-align:center;margin-bottom:20px;font-size:20px;">Admin Account Deactivated</h2>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">Hello ${name},</p>
+      <p style="color:#374151;font-size:16px;line-height:1.5;">
+        Your admin account has been <strong>deactivated</strong> by the system administrator.
+      </p>
+      <p style="color:#6b7280;font-size:14px;line-height:1.5;">
+        If you believe this was done in error, please contact support.
+      </p>
+    </div>
+  </div>
+`,
   };
 
   await transporter.sendMail(mailOptions);
