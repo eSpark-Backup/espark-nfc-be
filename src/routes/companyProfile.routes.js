@@ -16,9 +16,10 @@ import {
 
 export const companyProfileRoutes = express.Router();
 
+companyProfileRoutes.get('/', getCompanyProfile);
+
 // Only super admin can access company profile routes
 companyProfileRoutes.use(verifyToken, isSuperAdmin);
-
 
 /**
  * @swagger
@@ -169,15 +170,10 @@ companyProfileRoutes
     validateRequest,
     createCompanyProfile
   )
-  .get(getCompanyProfile)
   .patch(
     upload.single('profile_image'),
     validateUpdateCompanyProfile,
     validateRequest,
     updateCompanyProfile
   )
-  .delete(
-    deleteCompanyProfile
-  );
-
-  
+  .delete(deleteCompanyProfile);
