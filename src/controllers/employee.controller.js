@@ -9,13 +9,12 @@ import {
   replaceImage,
   removeImage,
   attachPresignedImageUrl,
-  uploadImage
+  uploadImage,
 } from '../utils/imageHelper.js';
 import { checkDuplicateEmployee } from '../utils/duplicateChecker.js';
 
 // Create Employee
 export const createEmployee = asyncWrapper(async (req, res, next) => {
-
   const companyProfile = await CompanyProfile.findOne();
 
   const {
@@ -31,7 +30,8 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     facebook,
     twitter,
     instagram,
-    youtube
+    youtube,
+    linkedin,
   } = req.body;
 
   const duplicate = await checkDuplicateEmployee({ email, phone_number, Employee });
@@ -59,11 +59,12 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
       twitter,
       instagram,
       youtube,
+      linkedin,
     },
     created_by: req.admin?.id || null,
     updated_by: null,
-    company_id: companyProfile?._id
-  }
+    company_id: companyProfile?._id,
+  };
 
   if (req.file) {
     const { image_key, image_url } = await uploadImage(req.file.buffer, 'employee');
@@ -84,10 +85,6 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     employee,
   });
 });
-
-
-
-
 
 // Get All Employees
 export const getEmployees = asyncWrapper(async (req, res) => {
@@ -130,38 +127,11 @@ export const getEmployeeCount = asyncWrapper(async (req, res) => {
   });
 });
 
-
-// Get Employee By ID
-// export const getEmployeeById = asyncWrapper(async (req, res, next) => {
-//   const { id } = req.params;
-
-//   await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
-
-//   const employee = await Employee.findById(id)
-//     .populate('department_id', 'name email')
-//     .populate('created_by', 'full_name email')
-//     .populate('updated_by', 'full_name email')
-//     .populate('company_id', 'company_name');
-
-//   if (!employee) {
-//     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
-//   }
-
-//   await attachPresignedImageUrl(employee, 'profile_image');
-
-//   res.status(HTTP_STATUS.OK).json({
-//     success: true,
-//     message: 'Employee fetched successfully',
-//     employee,
-//   });
-// });
-
 // Get Employee By ID
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
   await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
-
 
   const employee = await Employee.findById(id)
     .populate('department_id', 'name email')
@@ -187,7 +157,6 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
 // Update Employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -199,11 +168,12 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     twitter,
     instagram,
     youtube,
+    linkedin,
     profile_image,
     ...fieldsToUpdate
   } = req.body;
 
-  const employee = await Employee.findById(id)
+  const employee = await Employee.findById(id);
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
@@ -253,12 +223,12 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   }
 
   // Update social links if any changed
-  const socialLinksChanged = ['facebook', 'twitter', 'instagram', 'youtube'].some(
+  const socialLinksChanged = ['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].some(
     (key) => (employee.social_links?.[key] || '') !== req.body[key]
   );
 
   if (socialLinksChanged) {
-    employee.social_links = { facebook, twitter, instagram, youtube };
+    employee.social_links = { facebook, twitter, instagram, youtube, linkedin };
     updated = true;
   }
 
@@ -305,10 +275,6 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   });
 });
 
-
-
-
-
 // Delete Employee
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -329,7 +295,6 @@ export const deleteEmployee = asyncWrapper(async (req, res, next) => {
 
 // GET /api/employees/reports
 export const getEmployeeReports = asyncWrapper(async (req, res, next) => {
-  
   let query = Employee.find({}, 'name designation profile_image view_count');
 
   const { results: employees, pagination } = await applyQueryOptions(
@@ -341,9 +306,7 @@ export const getEmployeeReports = asyncWrapper(async (req, res, next) => {
   );
 
   // Attach pre-signed URLs in parallel for performance
-  await Promise.all(
-    employees.map(emp => attachPresignedImageUrl(emp, 'profile_image'))
-  );
+  await Promise.all(employees.map((emp) => attachPresignedImageUrl(emp, 'profile_image')));
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -352,5 +315,3 @@ export const getEmployeeReports = asyncWrapper(async (req, res, next) => {
     pagination,
   });
 });
-
-

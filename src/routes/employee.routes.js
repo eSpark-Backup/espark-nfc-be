@@ -23,7 +23,6 @@ export const employeeRoutes = express.Router();
 // Apply authentication middleware to all routes
 employeeRoutes.use(verifyToken, companyProfileExists);
 
-
 /**
  * @swagger
  * /api/employees:
@@ -83,6 +82,9 @@ employeeRoutes.use(verifyToken, companyProfileExists);
  *                 type: string
  *                 format: uri
  *               youtube:
+ *                 type: string
+ *                 format: uri
+ *               linkedin:
  *                 type: string
  *                 format: uri
  *               website_url:
@@ -169,7 +171,6 @@ employeeRoutes
   .post(upload.single('profile_image'), validateCreateEmployee, validateRequest, createEmployee)
   .get(getEmployees);
 
-
 /**
  * @swagger
  * /api/employees/count:
@@ -199,8 +200,7 @@ employeeRoutes
  *         description: Unauthorized
  */
 
-employeeRoutes.route('/count')
-  .get(getEmployeeCount);
+employeeRoutes.route('/count').get(getEmployeeCount);
 
 /**
  * @swagger
@@ -285,6 +285,9 @@ employeeRoutes.route('/count')
  *               youtube:
  *                 type: string
  *                 format: uri
+ *               linkedin:
+ *                 type: string
+ *                 format: uri
  *               website_url:
  *                 type: string
  *                 format: uri
@@ -298,7 +301,6 @@ employeeRoutes.route('/count')
  *       404:
  *         description: Employee not found
  */
-
 
 /**
  * @swagger
@@ -337,8 +339,7 @@ employeeRoutes.route('/count')
  *         description: Employee not found
  */
 
-
- /**
+/**
  * @swagger
  * /api/employees/reports:
  *   get:
@@ -350,9 +351,7 @@ employeeRoutes.route('/count')
  *       200:
  *         description: Employee reports fetched successfully
  */
-employeeRoutes
-  .route('/reports')
-  .get(getEmployeeReports);
+employeeRoutes.route('/reports').get(getEmployeeReports);
 
 // Get, update, and delete employee by ID
 employeeRoutes

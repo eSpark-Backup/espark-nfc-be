@@ -35,6 +35,14 @@ export const socialLinksSchema = new mongoose.Schema(
         message: 'Invalid YouTube URL',
       },
     },
+    linkedin: {
+      type: String,
+      default: '',
+      validate: {
+        validator: (v) => !v || validator.isURL(v),
+        message: 'Invalid Linkedin URL',
+      },
+    },
   },
   { _id: false }
 );

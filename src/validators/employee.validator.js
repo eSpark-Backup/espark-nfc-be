@@ -113,6 +113,13 @@ export const validateCreateEmployee = [
     .toLowerCase()
     .isURL()
     .withMessage('Invalid YouTube URL'),
+
+  body('social_links.linkedin')
+    .optional({ checkFalsy: true })
+    .trim()
+    .toLowerCase()
+    .isURL()
+    .withMessage('Invalid Linkedin URL'),
 ];
 
 export const validateUpdateEmployee = [
@@ -235,6 +242,13 @@ export const validateUpdateEmployee = [
     .toLowerCase()
     .isURL()
     .withMessage('Invalid YouTube URL'),
+
+  body('social_links.linkedin')
+    .optional({ checkFalsy: true })
+    .trim()
+    .toLowerCase()
+    .isURL()
+    .withMessage('Invalid Linkedin URL'),
 ];
 
 export const validateEmployeeId = [param('id').isMongoId().withMessage('Invalid employee ID')];
