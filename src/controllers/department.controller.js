@@ -257,6 +257,7 @@ export const deleteDepartment = asyncWrapper(async (req, res, next) => {
   }
 
   await removeImage(department);
+  await removeImage(department, 'banner_image');
   await department.deleteOne();
 
   res.status(HTTP_STATUS.OK).json({
