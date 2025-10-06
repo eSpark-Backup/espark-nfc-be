@@ -40,7 +40,6 @@ departmentRoutes.use(verifyToken, companyProfileExists);
  *             required:
  *               - name
  *               - email
- *               - image
  *             properties:
  *               name:
  *                 type: string
@@ -48,6 +47,9 @@ departmentRoutes.use(verifyToken, companyProfileExists);
  *                 type: string
  *                 format: email
  *               image:
+ *                 type: string
+ *                 format: binary
+ *               banner_image:
  *                 type: string
  *                 format: binary
  *     responses:
@@ -257,6 +259,9 @@ departmentRoutes.get('/dropdown', getDepartmentsDropdown);
  *                 type: string
  *                 format: email
  *               image:
+ *                 type: string
+ *                 format: binary
+ *               banner_image:
  *                 type: string
  *                 format: binary
  *     responses:
