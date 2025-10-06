@@ -9,7 +9,7 @@ import {
   replaceImage,
   removeImage,
   attachPresignedImageUrl,
-  uploadImage
+  uploadImage,
 } from '../utils/imageHelper.js';
 import { checkDuplicateDepartment } from '../utils/duplicateChecker.js';
 
@@ -17,9 +17,8 @@ const normalize = (str) => str.toLowerCase().replace(/[-\s]/g, '');
 
 // Create Department
 export const createDepartment = asyncWrapper(async (req, res, next) => {
-  
   const companyProfile = await CompanyProfile.findOne();
-  
+
   const { name, email } = req.body;
 
   const normalizedName = normalize(name);
@@ -38,7 +37,7 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     name,
     email,
     created_by: req.admin?.id || null,
-    company_id: companyProfile?._id
+    company_id: companyProfile?._id,
   });
 
   if (req.file) {
@@ -46,8 +45,17 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     department.image = { image_key, image_url };
   }
 
+  if (req.files?.banner_image) {
+    const { image_key, image_url } = await uploadImage(
+      req.files.banner_image[0].buffer,
+      'department_banner'
+    );
+    department.banner_image = { image_key, image_url };
+  }
+
   await department.save();
   await attachPresignedImageUrl(department);
+  await attachPresignedImageUrl(department, 'banner_image');
 
   res.status(HTTP_STATUS.CREATED).json({
     success: true,
@@ -63,7 +71,7 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   let baseQuery = Department.find()
     .populate('created_by', 'full_name email')
     .populate('updated_by', 'full_name email')
-    .populate('company_id', 'company_name')
+    .populate('company_id', 'company_name');
 
   if (includeEmployees) {
     baseQuery = baseQuery.populate({
@@ -83,9 +91,12 @@ export const getAllDepartments = asyncWrapper(async (req, res) => {
   const departmentsWithExtras = await Promise.all(
     departments.map(async (dept) => {
       await attachPresignedImageUrl(dept);
+      await attachPresignedImageUrl(dept, 'banner_image');
 
       if (includeEmployees && dept.employees?.length) {
-        await Promise.all(dept.employees.map((employee) => attachPresignedImageUrl(employee, 'profile_image')));
+        await Promise.all(
+          dept.employees.map((employee) => attachPresignedImageUrl(employee, 'profile_image'))
+        );
       }
 
       const employeeCount = await Employee.countDocuments({ department_id: dept._id });
@@ -136,6 +147,7 @@ export const getDepartmentById = asyncWrapper(async (req, res, next) => {
   }
 
   await attachPresignedImageUrl(department);
+  await attachPresignedImageUrl(department, 'banner_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -195,8 +207,19 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
+  if (req.files?.banner_image) {
+    await replaceImage(
+      department,
+      req.files.banner_image[0].buffer,
+      'department_banner',
+      'banner_image'
+    );
+    updated = true;
+  }
+
   if (!updated) {
     await attachPresignedImageUrl(department);
+    await attachPresignedImageUrl(department, 'banner_image');
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       message: 'Department updated successfully',
@@ -208,6 +231,7 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
   await department.save();
 
   await attachPresignedImageUrl(department);
+  await attachPresignedImageUrl(department, 'banner_image');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -253,8 +277,7 @@ export const getDepartmentCount = asyncWrapper(async (req, res) => {
 });
 
 export const getDepartmentsDropdown = asyncWrapper(async (req, res) => {
-  const departments = await Department.find({}, { _id: 1, name: 1 })
-    .sort({ name: 1 });
+  const departments = await Department.find({}, { _id: 1, name: 1 }).sort({ name: 1 });
 
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -264,5 +287,3 @@ export const getDepartmentsDropdown = asyncWrapper(async (req, res) => {
     departments,
   });
 });
-
-

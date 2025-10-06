@@ -23,7 +23,10 @@ const departmentSchema = new mongoose.Schema(
       },
     },
     image: {
-      type: imageSchema
+      type: imageSchema,
+    },
+    banner_image: {
+      type: imageSchema,
     },
     ...auditFields,
     company_id: {

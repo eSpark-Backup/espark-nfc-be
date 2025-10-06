@@ -23,7 +23,6 @@ export const departmentRoutes = express.Router();
 // Apply authentication to all department routes
 departmentRoutes.use(verifyToken, companyProfileExists);
 
-
 /**
  * @swagger
  * /api/departments:
@@ -126,13 +125,19 @@ departmentRoutes.use(verifyToken, companyProfileExists);
  *         description: Unauthorized
  */
 
-
 // Create and get all departments
 departmentRoutes
   .route('/')
-  .post(upload.single('image'), validateCreateDepartment, validateRequest, createDepartment)
+  .post(
+    upload.fields([
+      { name: 'image', maxCount: 1 },
+      { name: 'banner_image', maxCount: 1 },
+    ]),
+    validateCreateDepartment,
+    validateRequest,
+    createDepartment
+  )
   .get(getAllDepartments);
-
 
 /**
  * @swagger
@@ -160,7 +165,6 @@ departmentRoutes
  *         description: Unauthorized
  */
 departmentRoutes.get('/count', getDepartmentCount);
-
 
 /**
  * @swagger
@@ -199,8 +203,6 @@ departmentRoutes.get('/count', getDepartmentCount);
  *         description: No departments found
  */
 departmentRoutes.get('/dropdown', getDepartmentsDropdown);
-
-
 
 /**
  * @swagger
@@ -305,20 +307,18 @@ departmentRoutes.get('/dropdown', getDepartmentsDropdown);
  *         description: Unauthorized
  */
 
-
 // Get, update, and delete department by ID
 departmentRoutes
   .route('/:id')
   .get(validateDepartmentId, validateRequest, getDepartmentById)
   .patch(
     validateDepartmentId,
-    upload.single('image'),
+    upload.fields([
+      { name: 'image', maxCount: 1 },
+      { name: 'banner_image', maxCount: 1 },
+    ]),
     validateUpdateDepartment,
     validateRequest,
     updateDepartment
   )
   .delete(validateDepartmentId, validateRequest, deleteDepartment);
-
-  
-
-  

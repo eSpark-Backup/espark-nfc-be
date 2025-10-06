@@ -19,6 +19,8 @@ export const validateCreateDepartment = [
     .withMessage('Invalid email address'),
 ];
 
+
+
 export const validateUpdateDepartment = [
   param('id').isMongoId().withMessage('Invalid department ID'),
 
