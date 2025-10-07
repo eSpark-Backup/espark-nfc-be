@@ -73,7 +73,18 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
 
   const employee = await Employee.create(employeeData);
 
-  await employee.populate('department_id', 'name email');
+  // await employee.populate('department_id', 'name email image banner_image');
+  await employee.populate({
+    path: 'department_id',
+    select: 'name email image banner_image',
+  });
+
+  if (employee.department_id?.image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'image');
+  }
+  if (employee.department_id?.banner_image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'banner_image');
+  }
 
   if (employee?.profile_image?.image_key) {
     await attachPresignedImageUrl(employee, 'profile_image');
@@ -91,7 +102,7 @@ export const getEmployees = asyncWrapper(async (req, res) => {
   let baseQuery = Employee.find()
     .populate('created_by', 'full_name email')
     .populate('updated_by', 'full_name email')
-    .populate('department_id', 'name')
+    .populate('department_id', 'name email image banner_image')
     .populate('company_id', 'company_name');
 
   const { results: employees, pagination } = await applyQueryOptions(
@@ -102,9 +113,24 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     ['name', 'email', 'created_at']
   );
 
+  // const employeesWithExtras = await Promise.all(
+  //   employees.map(async (emp) => {
+  //     await attachPresignedImageUrl(emp, 'profile_image');
+  //     return emp;
+  //   })
+  // );
+
   const employeesWithExtras = await Promise.all(
     employees.map(async (emp) => {
       await attachPresignedImageUrl(emp, 'profile_image');
+
+      if (emp.department_id?.image?.image_key) {
+        await attachPresignedImageUrl(emp.department_id, 'image');
+      }
+      if (emp.department_id?.banner_image?.image_key) {
+        await attachPresignedImageUrl(emp.department_id, 'banner_image');
+      }
+
       return emp;
     })
   );
@@ -133,10 +159,25 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 
   await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
 
+  // const employee = await Employee.findById(id)
+  //   .populate('department_id', 'name email image banner_image')
+  //   .populate('created_by', 'full_name email')
+  //   .populate('updated_by', 'full_name email');
+
   const employee = await Employee.findById(id)
-    .populate('department_id', 'name email')
+    .populate({
+      path: 'department_id',
+      select: 'name email image banner_image',
+    })
     .populate('created_by', 'full_name email')
     .populate('updated_by', 'full_name email');
+
+  if (employee.department_id?.image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'image');
+  }
+  if (employee.department_id?.banner_image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'banner_image');
+  }
 
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
@@ -260,8 +301,14 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 
   await employee.populate({
     path: 'department_id',
-    select: 'name email',
+    select: 'name email image banner_image',
   });
+  if (employee.department_id?.image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'image');
+  }
+  if (employee.department_id?.banner_image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'banner_image');
+  }
 
   // Always attach signed URL for image (whether changed or not)
   if (employee.profile_image?.image_key) {
