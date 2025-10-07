@@ -40,12 +40,25 @@ export const createDepartment = asyncWrapper(async (req, res, next) => {
     company_id: companyProfile?._id,
   });
 
-  if (req.file) {
-    const { image_key, image_url } = await uploadImage(req.file.buffer, 'department');
+  // if (req.file) {
+  //   const { image_key, image_url } = await uploadImage(req.file.buffer, 'department');
+  //   department.image = { image_key, image_url };
+  // }
+
+  // if (req.files?.banner_image) {
+  //   const { image_key, image_url } = await uploadImage(
+  //     req.files.banner_image[0].buffer,
+  //     'department_banner'
+  //   );
+  //   department.banner_image = { image_key, image_url };
+  // }
+
+  if (req.files?.image?.[0]) {
+    const { image_key, image_url } = await uploadImage(req.files.image[0].buffer, 'department');
     department.image = { image_key, image_url };
   }
 
-  if (req.files?.banner_image) {
+  if (req.files?.banner_image?.[0]) {
     const { image_key, image_url } = await uploadImage(
       req.files.banner_image[0].buffer,
       'department_banner'
