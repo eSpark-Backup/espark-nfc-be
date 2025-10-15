@@ -21,6 +21,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     name,
     email,
     phone_number,
+    second_phone_number,
     age,
     joining_date,
     designation,
@@ -48,6 +49,7 @@ export const createEmployee = asyncWrapper(async (req, res, next) => {
     name,
     email,
     phone_number,
+    second_phone_number,
     age,
     joining_date,
     designation,
@@ -109,16 +111,9 @@ export const getEmployees = asyncWrapper(async (req, res) => {
     Employee,
     baseQuery,
     req.query,
-    ['name', 'email', 'phone_number', 'designation'],
+    ['name', 'email', 'phone_number', 'second_phone_number', 'designation'],
     ['name', 'email', 'created_at']
   );
-
-  // const employeesWithExtras = await Promise.all(
-  //   employees.map(async (emp) => {
-  //     await attachPresignedImageUrl(emp, 'profile_image');
-  //     return emp;
-  //   })
-  // );
 
   const employeesWithExtras = await Promise.all(
     employees.map(async (emp) => {
@@ -158,11 +153,6 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
   await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
-
-  // const employee = await Employee.findById(id)
-  //   .populate('department_id', 'name email image banner_image')
-  //   .populate('created_by', 'full_name email')
-  //   .populate('updated_by', 'full_name email');
 
   const employee = await Employee.findById(id)
     .populate({
@@ -204,6 +194,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const {
     email,
     phone_number,
+    second_phone_number,
     department_id,
     facebook,
     twitter,
@@ -250,6 +241,11 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
   // Update phone number
   if (phone_number && phone_number !== employee.phone_number) {
     employee.phone_number = phone_number;
+    updated = true;
+  }
+
+  if (second_phone_number && second_phone_number !== employee.second_phone_number) {
+    employee.second_phone_number = second_phone_number;
     updated = true;
   }
 

@@ -36,6 +36,20 @@ const employeeSchema = new mongoose.Schema(
         message: 'Invalid phone number format',
       },
     },
+    second_phone_number: {
+      type: String,
+      trim: true,
+      validate: {
+        validator: function (v) {
+          if (!v) return true;
+          const digitsOnly = v.replace(/\D/g, '');
+          const phoneRegex = /^\+?[0-9\-]+$/;
+          return digitsOnly.length >= 7 && digitsOnly.length <= 15 && phoneRegex.test(v);
+        },
+        message: 'Invalid second phone number format',
+      },
+    },
+
     age: {
       type: Number,
       required: [true, 'Age is required'],
@@ -82,7 +96,7 @@ const employeeSchema = new mongoose.Schema(
     view_count: {
       type: Number,
       default: 0,
-    }
+    },
   },
   baseSchemaOptions
 );

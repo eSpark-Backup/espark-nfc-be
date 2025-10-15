@@ -37,6 +37,19 @@ export const validateCreateEmployee = [
       return true;
     }),
 
+  body('second_phone_number')
+    .optional({ checkFalsy: true })
+    .trim()
+    .matches(/^\+?[0-9\-]+$/)
+    .withMessage('Second phone number must contain only digits, hyphens, and an optional leading +')
+    .custom((value) => {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        throw new Error('Second phone number must be between 7 and 15 digits');
+      }
+      return true;
+    }),
+
   body('age')
     .notEmpty()
     .withMessage('Age is required')
@@ -156,6 +169,19 @@ export const validateUpdateEmployee = [
       const digitsOnly = value.replace(/\D/g, '');
       if (digitsOnly.length < 7 || digitsOnly.length > 15) {
         throw new Error('Phone number must be between 7 and 15 digits');
+      }
+      return true;
+    }),
+
+  body('second_phone_number')
+    .optional({ checkFalsy: true })
+    .trim()
+    .matches(/^\+?[0-9\-]+$/)
+    .withMessage('Second phone number must contain only digits, hyphens, and an optional leading +')
+    .custom((value) => {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        throw new Error('Second phone number must be between 7 and 15 digits');
       }
       return true;
     }),
