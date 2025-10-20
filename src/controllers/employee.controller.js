@@ -244,8 +244,8 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  if (second_phone_number && second_phone_number !== employee.second_phone_number) {
-    employee.second_phone_number = second_phone_number;
+  if (second_phone_number !== undefined && second_phone_number !== employee.second_phone_number) {
+    employee.second_phone_number = second_phone_number || '';
     updated = true;
   }
 

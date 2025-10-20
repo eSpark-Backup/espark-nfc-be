@@ -56,6 +56,8 @@ employeeRoutes.use(verifyToken, companyProfileExists);
  *                 format: email
  *               phone_number:
  *                 type: string
+ *               second_phone_number:
+ *                 type: string
  *               address:
  *                 type: string
  *               department_id:
@@ -130,7 +132,7 @@ employeeRoutes.use(verifyToken, companyProfileExists);
  *         name: sort_by
  *         schema:
  *           type: string
- *           enum: [full_name, email, phone_number, department, created_at, updated_at]
+ *           enum: [full_name, email, phone_number, second_phone_number, department, created_at, updated_at]
  *         description: Field to sort by (default is created_at)
  *       - in: query
  *         name: sort_order
@@ -256,6 +258,8 @@ employeeRoutes.route('/count').get(getEmployeeCount);
  *                 type: string
  *                 format: email
  *               phone_number:
+ *                 type: string
+ *               second_phone_number:
  *                 type: string
  *               address:
  *                 type: string
