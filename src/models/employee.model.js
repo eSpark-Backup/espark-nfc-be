@@ -93,6 +93,12 @@ const employeeSchema = new mongoose.Schema(
       ref: 'CompanyProfile',
       required: true,
     },
+    employee_id: {
+      type: String,
+      unique: true,
+      required: false,
+    },
+
     view_count: {
       type: Number,
       default: 0,
@@ -111,5 +117,20 @@ employeeSchema.virtual('department', {
 employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
 employeeSchema.index({ view_count: -1 });
+
+employeeSchema.pre('save', async function (next) {
+  if (this.isNew) {
+    const lastEmployee = await mongoose.model('Employee').findOne().sort({ created_at: -1 });
+    let nextNumber = 1;
+
+    if (lastEmployee && lastEmployee.employee_id) {
+      const lastNumber = parseInt(lastEmployee.employee_id.replace('ES', ''), 10);
+      nextNumber = lastNumber + 1;
+    }
+
+    this.employee_id = `ES${nextNumber.toString().padStart(2, '0')}`;
+  }
+  next();
+});
 
 export const Employee = mongoose.model('Employee', employeeSchema);
