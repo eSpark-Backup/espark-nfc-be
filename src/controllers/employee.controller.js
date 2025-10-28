@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Employee } from '../models/employee.model.js';
 import { Department } from '../models/department.model.js';
 import { CompanyProfile } from '../models/companyProfile.model.js';
@@ -152,9 +153,13 @@ export const getEmployeeCount = asyncWrapper(async (req, res) => {
 export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  await Employee.findByIdAndUpdate(id, { $inc: { view_count: 1 } });
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
 
-  const employee = await Employee.findById(id)
+  await Employee.findOneAndUpdate(query, { $inc: { view_count: 1 } });
+
+  const employee = await Employee.findOne(query)
     .populate({
       path: 'department_id',
       select: 'name email image banner_image',
@@ -205,7 +210,12 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     ...fieldsToUpdate
   } = req.body;
 
-  const employee = await Employee.findById(id);
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
+
+  const employee = await Employee.findOne(query);
+
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
@@ -221,7 +231,7 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
     const duplicate = await checkDuplicateEmployee({
       email: normalizedEmail,
       phone_number: normalizedPhone,
-      excludeId: id,
+      excludeId: employee._id,
       Employee,
     });
 
@@ -322,7 +332,12 @@ export const updateEmployee = asyncWrapper(async (req, res, next) => {
 export const deleteEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  const employee = await Employee.findById(id);
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
+
+  const employee = await Employee.findOne(query);
+
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
