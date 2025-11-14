@@ -33,8 +33,8 @@ export const uploadToS3 = async (fileBuffer, fileName, mimeType) => {
   const safeFileName = fileName.replace(/\s+/g, '-').toLowerCase();
   const ext = path.extname(safeFileName) || '.webp';
   const timestamp = Date.now();
+  const key = `images/${timestamp}-${safeFileName}`;
   // const key = `${timestamp}-${safeFileName}`;
-  const key = `${timestamp}-${safeFileName}`;
 
   const params = {
     Bucket: envConfig.s3.bucket,
