@@ -12,20 +12,10 @@ export const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
-export const generatePresignedUrl = async (key, expiresIn = 60 * 60) => {
+export const generatePresignedUrl = async (key) => {
   if (!key || typeof key !== 'string') {
     throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid S3 object key');
   }
 
-  const params = {
-    Bucket: envConfig.s3.bucket,
-    Key: key,
-    Expires: expiresIn,
-  };
-
-  try {
-    return await s3.getSignedUrlPromise('getObject', params);
-  } catch (error) {
-    throw new CustomError(HTTP_STATUS.INTERNAL_SERVER_ERROR, 'Failed to generate presigned URL');
-  }
+  return `https://www.eurosystemsint.com/${key}`;
 };

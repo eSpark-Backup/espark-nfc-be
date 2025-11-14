@@ -16,7 +16,7 @@ export const replaceImage = async (doc, buffer, prefix, field = 'image') => {
 
   doc[field] = {
     image_key: uploaded?.key || null,
-    image_url: uploaded?.url || null,
+    image_url: `https://www.eurosystemsint.com/images/${uploaded.key}`,
   };
 };
 
