@@ -3,3 +3,8 @@ node_modules
 scripts/uploadLogo.js
 scripts/assign_employee_ids.js
 .logo-upload.json
+updateAdminImageUrls.js
+updateEmployeeImageUrls.js
+updateDepartmentImageUrls.js
+printAllUrls.js
+fetchImageUrls.js

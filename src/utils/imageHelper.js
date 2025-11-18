@@ -14,9 +14,13 @@ export const replaceImage = async (doc, buffer, prefix, field = 'image') => {
 
   const uploaded = await uploadToS3(optimizedBuffer, filename, 'image/webp');
 
+  // doc[field] = {
+  //   image_key: uploaded?.key || null,
+  //   image_url: `https://www.eurosystemsint.com/images/${uploaded.key}`,
+  // };
   doc[field] = {
     image_key: uploaded?.key || null,
-    image_url: `https://www.eurosystemsint.com/images/${uploaded.key}`,
+    image_url: await generatePresignedUrl(uploaded.key),
   };
 };
 
@@ -48,8 +52,12 @@ export const uploadImage = async (buffer, prefix) => {
 
   const uploaded = await uploadToS3(optimizedBuffer, filename, 'image/webp');
 
+  // return {
+  //   image_key: uploaded?.key || null,
+  //   image_url: uploaded?.url || null,
+  // };
   return {
     image_key: uploaded?.key || null,
-    image_url: uploaded?.url || null,
+    image_url: await generatePresignedUrl(uploaded.key),
   };
 };

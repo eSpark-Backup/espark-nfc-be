@@ -215,8 +215,26 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
     updated = true;
   }
 
-  if (req.file) {
-    await replaceImage(department, req.file.buffer, 'department');
+  // if (req.file) {
+  //   await replaceImage(department, req.file.buffer, 'department');
+  //   updated = true;
+  // }
+
+  // if (req.files?.banner_image) {
+  //   await replaceImage(
+  //     department,
+  //     req.files.banner_image[0].buffer,
+  //     'department_banner',
+  //     'banner_image'
+  //   );
+  //   updated = true;
+  // }
+
+  if (req.files?.image?.[0]) {
+    await replaceImage(department, req.files.image[0].buffer, 'department', 'image');
+    department.updated_by = req.admin?.id || null;
+    await department.save();
+    await attachPresignedImageUrl(department, 'image');
     updated = true;
   }
 
@@ -227,6 +245,9 @@ export const updateDepartment = asyncWrapper(async (req, res, next) => {
       'department_banner',
       'banner_image'
     );
+    department.updated_by = req.admin?.id || null;
+    await department.save();
+    await attachPresignedImageUrl(department, 'banner_image');
     updated = true;
   }
 

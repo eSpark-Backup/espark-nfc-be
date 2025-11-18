@@ -46,10 +46,14 @@ export const uploadToS3 = async (fileBuffer, fileName, mimeType) => {
 
   const uploaded = await s3.upload(params).promise();
 
+  // return {
+  //   key: uploaded.Key,
+  //   // url: uploaded.Location,
+  //   url: `https://www.eurosystemsint.com/images/${uploaded.Key}`,
+  // };
   return {
     key: uploaded.Key,
-    // url: uploaded.Location,
-    url: `https://www.eurosystemsint.com/images/${uploaded.Key}`,
+    url: null,
   };
 };
 

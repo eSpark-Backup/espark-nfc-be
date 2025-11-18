@@ -12,10 +12,19 @@ export const s3 = new AWS.S3({
   s3ForcePathStyle: true,
 });
 
+// export const generatePresignedUrl = async (key) => {
+//   if (!key || typeof key !== 'string') {
+//     throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid S3 object key');
+//   }
+
+//   return `https://www.eurosystemsint.com/${key}`;
+// };
+
 export const generatePresignedUrl = async (key) => {
   if (!key || typeof key !== 'string') {
     throw new CustomError(HTTP_STATUS.BAD_REQUEST, 'Invalid S3 object key');
   }
 
-  return `https://www.eurosystemsint.com/${key}`;
+  const cleanedKey = key.startsWith('images/') ? key : `images/${key}`;
+  return `https://www.eurosystemsint.com/${cleanedKey}`;
 };
