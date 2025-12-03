@@ -17,8 +17,66 @@ import {
   validateEmployeeId,
 } from '../validators/employee.validator.js';
 import { companyProfileExists } from '../middlewares/companyProfileExists.js';
+import { getEmployeeVCard, getEmployeeQRCode } from '../controllers/employee.controller.js';
 
 export const employeeRoutes = express.Router();
+
+/**
+ * @swagger
+ * /api/employees/{id}/public/contact-qr:
+ *   get:
+ *     summary: Get QR code PNG for employee contact vCard
+ *     tags: [Employee]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Employee ID
+ *     responses:
+ *       200:
+ *         description: PNG image of QR code
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+employeeRoutes
+  .route('/:id/public/contact-qr')
+  .get(validateEmployeeId, validateRequest, getEmployeeQRCode);
+
+/**
+ * @swagger
+ * /api/employees/{id}/contact:
+ *   get:
+ *     summary: Download employee contact as vCard
+ *     tags: [Employee]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Employee ID
+ *     responses:
+ *       200:
+ *         description: vCard file generated successfully
+ *         content:
+ *           text/vcard:
+ *             schema:
+ *               type: string
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+employeeRoutes.route('/:id/contact').get(validateEmployeeId, validateRequest, getEmployeeVCard);
 
 // Apply authentication middleware to all routes
 employeeRoutes.use(verifyToken, companyProfileExists);
@@ -172,6 +230,65 @@ employeeRoutes
   .route('/')
   .post(upload.single('profile_image'), validateCreateEmployee, validateRequest, createEmployee)
   .get(getEmployees);
+
+/**
+ * @swagger
+ * /api/employees/{id}/contact:
+ *   get:
+ *     summary: Download employee contact as vCard
+ *     tags: [Employee]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Employee ID
+ *     responses:
+ *       200:
+ *         description: vCard file generated successfully
+ *         content:
+ *           text/vcard:
+ *             schema:
+ *               type: string
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+employeeRoutes.route('/:id/contact').get(validateEmployeeId, validateRequest, getEmployeeVCard);
+
+/**
+ * @swagger
+ * /api/employees/{id}/contact-qr:
+ *   get:
+ *     summary: Get QR code PNG for employee contact vCard
+ *     tags: [Employee]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Employee ID
+ *     responses:
+ *       200:
+ *         description: PNG image of QR code
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Employee not found
+ *       401:
+ *         description: Unauthorized
+ */
+employeeRoutes.route('/:id/contact-qr').get(validateEmployeeId, validateRequest, getEmployeeQRCode);
 
 /**
  * @swagger

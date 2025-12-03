@@ -82,6 +82,11 @@ const employeeSchema = new mongoose.Schema(
     profile_image: {
       type: imageSchema,
     },
+    qr_url: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     department_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Department',

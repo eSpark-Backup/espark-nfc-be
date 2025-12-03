@@ -13,6 +13,10 @@ import {
   uploadImage,
 } from '../utils/imageHelper.js';
 import { checkDuplicateEmployee } from '../utils/duplicateChecker.js';
+import { generateVCard } from '../utils/vCardGenerator.js';
+import { generateQRCodePNG } from '../utils/QRCodeGenerator.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Create Employee
 export const createEmployee = asyncWrapper(async (req, res, next) => {
@@ -177,6 +181,10 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
+
+  // Add QR code URL here
+  const baseUrl = process.env.BASE_URL; // e.g., https://yourdomain.com
+  employee.qr_url = `${baseUrl}/employees/${employee._id}/contact-qr`;
 
   await attachPresignedImageUrl(employee, 'profile_image');
 
@@ -372,4 +380,64 @@ export const getEmployeeReports = asyncWrapper(async (req, res, next) => {
     data: employees,
     pagination,
   });
+});
+
+export const getEmployeeVCard = asyncWrapper(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Find employee by _id or employee_id
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
+
+  const employee = await Employee.findOne(query);
+
+  if (!employee) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
+  }
+
+  // Attach presigned URL for profile image
+  if (employee?.profile_image?.image_key) {
+    await attachPresignedImageUrl(employee, 'profile_image');
+  }
+
+  // Generate vCard content
+  const vCardContent = generateVCard(employee);
+
+  // Send vCard as attachment
+  res.setHeader('Content-Type', 'text/vcard');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${employee.name.replace(/\s+/g, '_')}.vcf"`
+  );
+  res.status(HTTP_STATUS.OK).send(vCardContent);
+});
+
+/**
+ * GET /api/employees/:id/contact-qr
+ * Returns PNG QR code pointing to the vCard URL
+ */
+export const getEmployeeQRCode = asyncWrapper(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Check employee exists
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
+
+  const employee = await Employee.findOne(query);
+
+  if (!employee) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
+  }
+
+  // Construct URL for vCard endpoint (adjust your base URL accordingly)
+  const vCardUrl = `${process.env.BASE_URL}/employees/${employee._id}/contact`;
+
+  // Generate PNG QR code
+  const qrBuffer = await generateQRCodePNG(vCardUrl);
+
+  // Send as PNG image
+  res.setHeader('Content-Type', 'image/png');
+  res.status(HTTP_STATUS.OK).send(qrBuffer);
 });
