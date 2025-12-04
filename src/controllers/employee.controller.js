@@ -390,15 +390,40 @@ export const getEmployeeVCard = asyncWrapper(async (req, res, next) => {
     ? { _id: id }
     : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
 
-  const employee = await Employee.findOne(query);
+  const employee = await Employee.findOne(query).lean();
 
   if (!employee) {
     return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
   }
 
-  // Attach presigned URL for profile image
+  // Fetch and convert profile image to base64
   if (employee?.profile_image?.image_key) {
-    await attachPresignedImageUrl(employee, 'profile_image');
+    try {
+      const { GetObjectCommand, S3Client } = await import('@aws-sdk/client-s3');
+      const s3Client = new S3Client({
+        region: process.env.AWS_REGION,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        },
+      });
+
+      const command = new GetObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: employee.profile_image.image_key,
+      });
+
+      const response = await s3Client.send(command);
+      const imageBuffer = await streamToBuffer(response.Body);
+      employee.profile_image.base64 = imageBuffer.toString('base64');
+
+      // Determine image type from key
+      const ext = employee.profile_image.image_key.split('.').pop().toLowerCase();
+      employee.profile_image.mimeType = ext === 'png' ? 'PNG' : 'JPEG';
+    } catch (error) {
+      console.error('Error fetching image from S3:', error);
+      // Continue without image if fetch fails
+    }
   }
 
   // Generate vCard content
@@ -412,6 +437,15 @@ export const getEmployeeVCard = asyncWrapper(async (req, res, next) => {
   );
   res.status(HTTP_STATUS.OK).send(vCardContent);
 });
+
+// Helper function to convert stream to buffer
+async function streamToBuffer(stream) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
 
 /**
  * GET /api/employees/:id/contact-qr
