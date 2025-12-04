@@ -184,7 +184,7 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 
   // Add QR code URL here
   const baseUrl = process.env.BASE_URL; // e.g., https://yourdomain.com
-  employee.qr_url = `${baseUrl}/employees/${employee._id}/contact-qr`;
+  employee.qr_url = `${baseUrl}/employees/${employee._id}/public/contact-qr`;
 
   await attachPresignedImageUrl(employee, 'profile_image');
 
