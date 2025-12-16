@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { adminRoutes } from './routes/admin.routes.js';
+import { googleWalletRoutes } from './routes/googleWallet.routes.js';
 import { departmentRoutes } from './routes/department.routes.js';
 import { employeeRoutes } from './routes/employee.routes.js';
 import { companyProfileRoutes } from './routes/companyProfile.routes.js';
@@ -84,6 +85,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/employees/wallet/google', googleWalletRoutes);
 app.use('/api/company-profile', companyProfileRoutes);
 
 // ✅ 404 Catch-All

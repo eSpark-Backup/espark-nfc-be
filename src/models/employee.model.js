@@ -108,6 +108,36 @@ const employeeSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    wallet_passes: {
+      google: {
+        object_id: {
+          type: String,
+          default: null,
+        },
+        save_url: {
+          type: String,
+          default: null,
+        },
+        last_generated: {
+          type: Date,
+          default: null,
+        },
+        generation_count: {
+          type: Number,
+          default: 0,
+        },
+        status: {
+          type: String,
+          enum: ['ACTIVE', 'EXPIRED', 'INACTIVE', 'NOT_GENERATED'],
+          default: 'NOT_GENERATED',
+        },
+        last_updated: {
+          type: Date,
+          default: null,
+        },
+      },
+    },
   },
   baseSchemaOptions
 );
@@ -122,6 +152,7 @@ employeeSchema.virtual('department', {
 employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
 employeeSchema.index({ view_count: -1 });
+employeeSchema.index({ 'wallet_passes.google.object_id': 1 });
 
 employeeSchema.pre('save', async function (next) {
   if (this.isNew) {
@@ -137,5 +168,29 @@ employeeSchema.pre('save', async function (next) {
   }
   next();
 });
+
+employeeSchema.methods.updateGoogleWalletPass = function (passData) {
+  this.wallet_passes.google = {
+    object_id: passData.objectId,
+    save_url: passData.saveUrl,
+    last_generated: new Date(),
+    generation_count: (this.wallet_passes?.google?.generation_count || 0) + 1,
+    status: 'ACTIVE',
+    last_updated: new Date(),
+  };
+  return this.save();
+};
+
+employeeSchema.methods.deactivateGoogleWalletPass = function () {
+  if (this.wallet_passes?.google) {
+    this.wallet_passes.google.status = 'EXPIRED';
+    this.wallet_passes.google.last_updated = new Date();
+  }
+  return this.save();
+};
+
+employeeSchema.statics.findWithActiveGooglePasses = function () {
+  return this.find({ 'wallet_passes.google.status': 'ACTIVE' });
+};
 
 export const Employee = mongoose.model('Employee', employeeSchema);
