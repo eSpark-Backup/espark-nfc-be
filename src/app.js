@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { adminRoutes } from './routes/admin.routes.js';
+import { appleWalletRoutes } from './routes/appleWallet.routes.js';
+import { appleWalletWebServiceRoutes } from './routes/appleWalletWebService.routes.js';
 import { googleWalletRoutes } from './routes/googleWallet.routes.js';
 import { departmentRoutes } from './routes/department.routes.js';
 import { employeeRoutes } from './routes/employee.routes.js';
@@ -80,12 +82,15 @@ app.get('/api/health', (req, res) => {
 // ✅ Swagger Docs (no need to manually set headers)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.use('/api/apple-wallet', appleWalletWebServiceRoutes);
+
 // ✅ API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/employees/wallet/google', googleWalletRoutes);
+app.use('/api/employees/wallet/apple', appleWalletRoutes);
 app.use('/api/company-profile', companyProfileRoutes);
 
 // ✅ 404 Catch-All

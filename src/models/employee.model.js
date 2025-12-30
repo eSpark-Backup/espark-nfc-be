@@ -137,6 +137,41 @@ const employeeSchema = new mongoose.Schema(
           default: null,
         },
       },
+      apple: {
+        serial_number: {
+          type: String,
+          default: null,
+        },
+        pass_file_path: {
+          type: String,
+          default: null,
+        },
+        last_generated: {
+          type: Date,
+          default: null,
+        },
+        generation_count: {
+          type: Number,
+          default: 0,
+        },
+        status: {
+          type: String,
+          enum: ['ACTIVE', 'EXPIRED', 'INACTIVE', 'NOT_GENERATED'],
+          default: 'NOT_GENERATED',
+        },
+        last_updated: {
+          type: Date,
+          default: null,
+        },
+        pass_size: {
+          type: Number,
+          default: null,
+        },
+        authentication_token: {
+          type: String,
+          default: null,
+        },
+      },
     },
   },
   baseSchemaOptions
@@ -153,6 +188,7 @@ employeeSchema.index({ email: 1 }, { unique: true });
 employeeSchema.index({ phone_number: 1 }, { unique: true });
 employeeSchema.index({ view_count: -1 });
 employeeSchema.index({ 'wallet_passes.google.object_id': 1 });
+employeeSchema.index({ 'wallet_passes.apple.serial_number': 1 });
 
 employeeSchema.pre('save', async function (next) {
   if (this.isNew) {
@@ -189,8 +225,91 @@ employeeSchema.methods.deactivateGoogleWalletPass = function () {
   return this.save();
 };
 
+employeeSchema.methods.updateAppleWalletPass = function (passData) {
+  this.wallet_passes.apple = {
+    serial_number: passData.serialNumber,
+    pass_file_path: passData.filePath || null,
+    last_generated: new Date(),
+    generation_count: (this.wallet_passes?.apple?.generation_count || 0) + 1,
+    status: 'ACTIVE',
+    last_updated: new Date(),
+    pass_size: passData.size || null,
+    authentication_token: passData.authenticationToken || null,
+  };
+  return this.save();
+};
+
+employeeSchema.methods.verifyAppleWalletAuthToken = function (token) {
+  return this.wallet_passes?.apple?.authentication_token === token;
+};
+
+employeeSchema.statics.findBySerialNumberAndVerifyToken = async function (serialNumber, token) {
+  const employee = await this.findOne({
+    'wallet_passes.apple.serial_number': serialNumber,
+    'wallet_passes.apple.status': 'ACTIVE',
+  });
+
+  if (!employee) {
+    return null;
+  }
+
+  if (employee.wallet_passes.apple.authentication_token !== token) {
+    return null;
+  }
+
+  return employee;
+};
+
+employeeSchema.methods.deactivateAppleWalletPass = function () {
+  if (this.wallet_passes?.apple) {
+    this.wallet_passes.apple.status = 'EXPIRED';
+    this.wallet_passes.apple.last_updated = new Date();
+  }
+  return this.save();
+};
+
+employeeSchema.methods.getAppleWalletPassPath = function () {
+  return this.wallet_passes?.apple?.pass_file_path || null;
+};
+
+employeeSchema.methods.hasAppleWalletPass = function () {
+  return this.wallet_passes?.apple?.serial_number && this.wallet_passes?.apple?.status === 'ACTIVE';
+};
+
+employeeSchema.methods.hasGoogleWalletPass = function () {
+  return this.wallet_passes?.google?.object_id && this.wallet_passes?.google?.status === 'ACTIVE';
+};
+
 employeeSchema.statics.findWithActiveGooglePasses = function () {
   return this.find({ 'wallet_passes.google.status': 'ACTIVE' });
+};
+
+employeeSchema.statics.findWithActiveApplePasses = function () {
+  return this.find({ 'wallet_passes.apple.status': 'ACTIVE' });
+};
+
+employeeSchema.statics.findWithActiveWalletPasses = function () {
+  return this.find({
+    $or: [{ 'wallet_passes.google.status': 'ACTIVE' }, { 'wallet_passes.apple.status': 'ACTIVE' }],
+  });
+};
+
+employeeSchema.statics.getWalletPassStatistics = async function () {
+  const totalEmployees = await this.countDocuments();
+  const withGooglePass = await this.countDocuments({ 'wallet_passes.google.status': 'ACTIVE' });
+  const withApplePass = await this.countDocuments({ 'wallet_passes.apple.status': 'ACTIVE' });
+  const withBothPasses = await this.countDocuments({
+    'wallet_passes.google.status': 'ACTIVE',
+    'wallet_passes.apple.status': 'ACTIVE',
+  });
+
+  return {
+    total_employees: totalEmployees,
+    google_passes: withGooglePass,
+    apple_passes: withApplePass,
+    both_passes: withBothPasses,
+    no_passes: totalEmployees - withGooglePass - withApplePass + withBothPasses,
+  };
 };
 
 export const Employee = mongoose.model('Employee', employeeSchema);

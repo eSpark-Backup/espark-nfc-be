@@ -475,3 +475,18 @@ export const getEmployeeQRCode = asyncWrapper(async (req, res, next) => {
   res.setHeader('Content-Type', 'image/png');
   res.status(HTTP_STATUS.OK).send(qrBuffer);
 });
+
+/**
+ * @desc    Get wallet pass statistics
+ * @route   GET /api/employees/wallet/statistics
+ * @access  Private (Admin/Super Admin)
+ */
+export const getWalletPassStatistics = asyncWrapper(async (req, res) => {
+  const statistics = await Employee.getWalletPassStatistics();
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Wallet pass statistics retrieved successfully',
+    data: statistics,
+  });
+});

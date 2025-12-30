@@ -8,3 +8,13 @@ updateEmployeeImageUrls.js
 updateDepartmentImageUrls.js
 printAllUrls.js
 fetchImageUrls.js
+
+# Certificates (NEVER commit these!)
+certificates/
+*.pem
+*.cer
+*.p12
+*.key
+
+# Temporary pass files
+temp/apple-passes/*.pkpass

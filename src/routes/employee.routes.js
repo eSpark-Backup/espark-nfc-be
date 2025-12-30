@@ -7,6 +7,7 @@ import {
   updateEmployee,
   deleteEmployee,
   getEmployeeReports,
+  getWalletPassStatistics,
 } from '../controllers/employee.controller.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
@@ -20,6 +21,51 @@ import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 import { getEmployeeVCard, getEmployeeQRCode } from '../controllers/employee.controller.js';
 
 export const employeeRoutes = express.Router();
+
+/**
+ * @swagger
+ * /api/employees/wallet/statistics:
+ *   get:
+ *     summary: Get comprehensive wallet pass statistics (Google & Apple)
+ *     tags: [Wallet Statistics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Wallet pass statistics retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     total_employees:
+ *                       type: integer
+ *                       example: 100
+ *                     google_passes:
+ *                       type: integer
+ *                       example: 75
+ *                     apple_passes:
+ *                       type: integer
+ *                       example: 60
+ *                     both_passes:
+ *                       type: integer
+ *                       example: 50
+ *                     no_passes:
+ *                       type: integer
+ *                       example: 15
+ *       401:
+ *         description: Unauthorized
+ */
+employeeRoutes.route('/wallet/statistics').get(getWalletPassStatistics);
 
 /**
  * @swagger
