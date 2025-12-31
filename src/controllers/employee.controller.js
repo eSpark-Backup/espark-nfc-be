@@ -184,7 +184,7 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 
   // Add QR code URL here
   const baseUrl = process.env.BASE_URL; // e.g., https://yourdomain.com
-  employee.qr_url = `${baseUrl}/employees/${employee._id}/public/contact-qr`;
+  employee.qr_url = `${baseUrl}/api/employees/${employee._id}/public/contact-qr`;
 
   await attachPresignedImageUrl(employee, 'profile_image');
 
@@ -466,7 +466,7 @@ export const getEmployeeQRCode = asyncWrapper(async (req, res, next) => {
   }
 
   // Construct URL for vCard endpoint (adjust your base URL accordingly)
-  const vCardUrl = `${process.env.BASE_URL}/employees/${employee._id}/contact`;
+  const vCardUrl = `${process.env.BASE_URL}/api/employees/${employee._id}/contact`;
 
   // Generate PNG QR code
   const qrBuffer = await generateQRCodePNG(vCardUrl);

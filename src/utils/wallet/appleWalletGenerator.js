@@ -49,7 +49,7 @@ class AppleWalletGenerator {
 
     const authToken = crypto.randomUUID();
 
-    pass.webServiceURL = `${process.env.BASE_URL}/apple-wallet`;
+    pass.webServiceURL = `${process.env.BASE_URL}/api/apple-wallet`;
     pass.authenticationToken = authToken;
 
     this._lastGeneratedAuthToken = authToken;

@@ -38,7 +38,7 @@ export const createApplePassJSON = (employee, companyProfile, serialNumber) => {
     barcodes: [
       {
         format: 'PKBarcodeFormatQR',
-        message: `${process.env.BASE_URL}/employees/${employee.employee_id}/contact`,
+        message: `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`,
         messageEncoding: 'iso-8859-1',
         altText: employee.employee_id,
       },
