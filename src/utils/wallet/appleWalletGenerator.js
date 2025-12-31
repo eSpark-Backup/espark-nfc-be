@@ -49,21 +49,22 @@ class AppleWalletGenerator {
 
     const authToken = crypto.randomUUID();
 
-    pass.webServiceURL = `${process.env.BASE_URL}/api/apple-wallet`;
+    pass.webServiceURL = `${process.env.BASE_URL}/apple-wallet`;
     pass.authenticationToken = authToken;
 
     this._lastGeneratedAuthToken = authToken;
 
-    pass.barcodes = [
+    const barcodeMessage =
+      employee.qr_url || `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`;
+
+    pass.setBarcodes([
       {
         format: 'PKBarcodeFormatQR',
-        message:
-          employee.qr_url ||
-          `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`,
-        messageEncoding: 'utf-8',
+        message: barcodeMessage,
+        messageEncoding: 'iso-8859-1',
         altText: employee.employee_id,
       },
-    ];
+    ]);
 
     pass.primaryFields.push({
       key: 'name',
