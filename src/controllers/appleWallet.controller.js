@@ -74,7 +74,6 @@ export const generateAppleWalletPass = asyncWrapper(async (req, res, next) => {
       file_name: fileResult.fileName,
       file_size: result.passBuffer.length,
       generated_at: new Date(),
-      web_service_url: `${process.env.BASE_URL}/api/apple-wallet`,
     },
   });
 });
