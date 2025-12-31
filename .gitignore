@@ -15,6 +15,7 @@ certificates/
 *.cer
 *.p12
 *.key
+*.json
 
 # Temporary pass files
-temp/apple-passes/*.pkpass
+temp/apple-passes/*.pkpassservice-account.json
