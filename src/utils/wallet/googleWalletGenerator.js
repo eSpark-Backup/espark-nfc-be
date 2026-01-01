@@ -157,11 +157,14 @@ class GoogleWalletGenerator {
       const claims = createJWTClaims(objectId);
 
       // Read service account key
-      const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      const serviceAccountPath = path.resolve(
+        process.cwd(),
+        process.env.GOOGLE_APPLICATION_CREDENTIALS
+      );
+
       if (!fs.existsSync(serviceAccountPath)) {
         throw new Error(`Service account file not found: ${serviceAccountPath}`);
       }
-
       const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
       // Create JWT

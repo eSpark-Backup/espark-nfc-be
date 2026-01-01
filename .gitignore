@@ -18,4 +18,4 @@ certificates/
 *.json
 
 # Temporary pass files
-temp/apple-passes/*.pkpassservice-account.json
+src/temp/apple-passes/*.pkpass

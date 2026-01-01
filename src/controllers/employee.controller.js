@@ -184,9 +184,11 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
 
   // Add QR code URL here
   const baseUrl = process.env.BASE_URL; // e.g., https://yourdomain.com
-  employee.qr_url = `${baseUrl}/api/employees/${employee._id}/public/contact-qr`;
 
-  await attachPresignedImageUrl(employee, 'profile_image');
+  const employeeObj = employee.toObject();
+  employeeObj.qr_url = `${baseUrl}/api/employees/${employee._id}/public/contact-qr`;
+
+  await attachPresignedImageUrl(employeeObj, 'profile_image');
 
   const company = await CompanyProfile.findOne();
   if (company?.profile_image?.image_key) {
@@ -196,7 +198,7 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   res.status(HTTP_STATUS.OK).json({
     success: true,
     message: 'Employee fetched successfully',
-    employee,
+    employee: employeeObj,
     company,
   });
 });
