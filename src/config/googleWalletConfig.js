@@ -1,5 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config();
 
