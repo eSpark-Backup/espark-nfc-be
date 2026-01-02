@@ -145,17 +145,6 @@ class AppleWalletConfig {
 
     return true;
   }
-
-  /**
-   * Get certificate paths
-   */
-  getCertificatePaths() {
-    return {
-      certificate: this.certificatePath,
-      key: this.keyPath,
-      wwdr: this.wwdrCertificatePath,
-    };
-  }
 }
 
 // Export singleton instance
