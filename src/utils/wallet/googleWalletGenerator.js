@@ -7,6 +7,7 @@ import {
 } from '../../templates/wallet/googlePassTemplate.js';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
+import path from 'path';
 
 /**
  * Google Wallet Pass Generator
