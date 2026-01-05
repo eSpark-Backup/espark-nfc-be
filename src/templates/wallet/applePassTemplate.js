@@ -172,6 +172,17 @@ export const createApplePassJSON = (employee, companyProfile, serialNumber) => {
               },
             ]
           : []),
+        ...(employee.social_links?.youtube
+          ? [
+              {
+                key: 'youtube',
+                label: 'Youtube',
+                value: employee.social_links.youtube,
+                textAlignment: 'PKTextAlignmentLeft',
+                attributedValue: `<a href="${employee.social_links.youtube}">Youtube Account</a>`,
+              },
+            ]
+          : []),
       ],
     },
 

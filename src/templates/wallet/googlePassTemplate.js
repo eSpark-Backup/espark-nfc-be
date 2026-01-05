@@ -122,7 +122,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
     state: 'ACTIVE',
     heroImage: {
       sourceUri: {
-        uri: employee.profile_image?.image_url || 'https://via.placeholder.com/1032x336',
+        uri: employee.profile_image?.image_url,
       },
       contentDescription: {
         defaultValue: {
@@ -133,7 +133,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
     },
     logo: {
       sourceUri: {
-        uri: companyProfile?.profile_image?.image_url || 'https://via.placeholder.com/400x200',
+        uri: companyProfile?.profile_image?.image_url,
       },
       contentDescription: {
         defaultValue: {
@@ -218,6 +218,33 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
                 uri: employee.social_links.facebook,
                 description: 'Facebook Profile',
                 id: 'facebook_link',
+              },
+            ]
+          : []),
+        ...(employee.social_links?.instagram
+          ? [
+              {
+                uri: employee.social_links.instagram,
+                description: 'Instagram Profile',
+                id: 'instagram_link',
+              },
+            ]
+          : []),
+        ...(employee.social_links?.twitter
+          ? [
+              {
+                uri: employee.social_links.twitter,
+                description: 'Twitter Profile',
+                id: 'twitter_link',
+              },
+            ]
+          : []),
+        ...(employee.social_links?.youtube
+          ? [
+              {
+                uri: employee.social_links.youtube,
+                description: 'Youtube Account',
+                id: 'youtube_link',
               },
             ]
           : []),

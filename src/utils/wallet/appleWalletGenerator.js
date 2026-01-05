@@ -132,7 +132,7 @@ class AppleWalletGenerator {
     );
 
     if (employee.social_links) {
-      const { facebook, twitter, instagram, linkedin } = employee.social_links;
+      const { facebook, twitter, instagram, linkedin, youtube } = employee.social_links;
 
       if (facebook)
         pass.backFields.push({
@@ -160,6 +160,12 @@ class AppleWalletGenerator {
           key: 'linkedin',
           label: 'LinkedIn',
           value: linkedin,
+        });
+      if (youtube)
+        pass.backFields.push({
+          key: 'youtube',
+          label: 'Youtube',
+          value: youtube,
         });
     }
   }
