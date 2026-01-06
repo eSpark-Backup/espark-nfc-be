@@ -4,6 +4,7 @@ import {
   getEmployees,
   getEmployeeCount,
   getEmployeeById,
+  getEmployeeByIdPublic,
   updateEmployee,
   deleteEmployee,
   getEmployeeReports,
@@ -123,6 +124,9 @@ employeeRoutes
  *         description: Unauthorized
  */
 employeeRoutes.route('/:id/contact').get(validateEmployeeId, validateRequest, getEmployeeVCard);
+
+// Public employee profile (no auth)
+employeeRoutes.route('/:id/public').get(validateEmployeeId, validateRequest, getEmployeeByIdPublic);
 
 // Apply authentication middleware to all routes
 employeeRoutes.use(verifyToken, companyProfileExists);

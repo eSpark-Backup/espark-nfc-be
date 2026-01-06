@@ -7,12 +7,12 @@ import { HTTP_STATUS } from '../constants/httpStatus.js';
 
 export const verifyToken = asyncWrapper(async (req, res, next) => {
 
-if (
-  req.method === 'GET' &&
-  /^\/api\/employees\/[a-fA-F0-9]{24}$/.test(req.originalUrl.split('?')[0])
-) {
-  return next();
-}
+// if (
+//   req.method === 'GET' &&
+//   /^\/api\/employees\/[a-fA-F0-9]{24}$/.test(req.originalUrl.split('?')[0])
+// ) {
+//   return next();
+// }
 
   const authHeader = req.headers.authorization;
 

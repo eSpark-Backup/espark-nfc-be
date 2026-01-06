@@ -57,14 +57,12 @@ class AppleWalletGenerator {
     const barcodeMessage =
       employee.qr_url || `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`;
 
-    pass.setBarcodes([
-      {
-        format: 'PKBarcodeFormatQR',
-        message: barcodeMessage,
-        messageEncoding: 'iso-8859-1',
-        altText: employee.employee_id,
-      },
-    ]);
+    pass.setBarcodes({
+      format: 'PKBarcodeFormatQR',
+      message: barcodeMessage,
+      messageEncoding: 'iso-8859-1',
+      altText: employee.employee_id,
+    });
 
     pass.primaryFields.push({
       key: 'name',
@@ -82,20 +80,6 @@ class AppleWalletGenerator {
         key: 'employee_id',
         label: 'EMPLOYEE ID',
         value: employee.employee_id,
-      }
-    );
-
-    pass.auxiliaryFields.push(
-      {
-        key: 'department',
-        label: 'DEPARTMENT',
-        value: employee.department_id?.name,
-      },
-      {
-        key: 'joining_date',
-        label: 'JOINED',
-        value: employee.joining_date,
-        dateStyle: 'PKDateStyleMedium',
       }
     );
 
@@ -120,14 +104,14 @@ class AppleWalletGenerator {
           ]
         : []),
       {
+        key: 'company_website',
+        label: 'Company Website',
+        value: companyProfile.website_link,
+      },
+      {
         key: 'address',
         label: 'Address',
         value: employee.address,
-      },
-      {
-        key: 'about',
-        label: 'About',
-        value: employee.about_me,
       }
     );
 

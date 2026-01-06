@@ -203,6 +203,59 @@ export const getEmployeeById = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Get Employee Public Profile (No QR or Wallet)
+export const getEmployeeByIdPublic = asyncWrapper(async (req, res, next) => {
+  const { id } = req.params;
+
+  const query = mongoose.Types.ObjectId.isValid(id)
+    ? { _id: id }
+    : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
+
+  const employee = await Employee.findOne(query)
+    .populate({
+      path: 'department_id',
+      select: 'name email image banner_image',
+    })
+    .populate('created_by', 'full_name email')
+    .populate('updated_by', 'full_name email');
+
+  if (!employee) {
+    return next(new CustomError(HTTP_STATUS.NOT_FOUND, 'Employee not found'));
+  }
+
+  const employeeObj = employee.toObject();
+
+  // Explicitly remove sensitive fields
+  employeeObj.qr_url = undefined;
+  employeeObj.wallet_passes = undefined;
+
+  // Attach presigned URLs for images
+  if (employee.department_id?.image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'image');
+  }
+  if (employee.department_id?.banner_image?.image_key) {
+    await attachPresignedImageUrl(employee.department_id, 'banner_image');
+  }
+  if (employee.profile_image?.image_key) {
+    await attachPresignedImageUrl(employeeObj, 'profile_image');
+  }
+
+  // Attach company details
+  const company = await CompanyProfile.findOne();
+  const companyObj = company ? company.toObject() : null;
+
+  if (companyObj?.profile_image?.image_key) {
+    await attachPresignedImageUrl(companyObj, 'profile_image');
+  }
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: 'Employee public profile fetched successfully',
+    employee: employeeObj,
+    company: companyObj,
+  });
+});
+
 // Update Employee
 export const updateEmployee = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
@@ -429,7 +482,7 @@ export const getEmployeeVCard = asyncWrapper(async (req, res, next) => {
   }
 
   // Generate vCard content
-  const vCardContent = generateVCard(employee);
+  const vCardContent = generateVCard(employee, employee.company_id?.website_link);
 
   // Send vCard as attachment
   res.setHeader('Content-Type', 'text/vcard');

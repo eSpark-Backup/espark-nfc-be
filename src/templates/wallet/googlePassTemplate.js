@@ -161,48 +161,17 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
       },
     },
     textModulesData: [
-      {
-        id: 'designation',
-        header: 'Designation',
-        body: employee.designation,
-      },
-      {
-        id: 'employee_id',
-        header: 'Employee ID',
-        body: employee.employee_id,
-      },
-      {
-        id: 'email',
-        header: 'Email',
-        body: employee.email,
-      },
-      {
-        id: 'phone',
-        header: 'Phone',
-        body: employee.phone_number,
-      },
-      {
-        id: 'department',
-        header: 'Department',
-        body: employee.department_id?.name || 'N/A',
-      },
-      {
-        id: 'joining_date',
-        header: 'Joining Date',
-        body: new Date(employee.joining_date).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
-      },
+      { id: 'designation', header: 'Designation', body: employee.designation },
+      { id: 'email', header: 'Email', body: employee.email },
+      { id: 'phone', header: 'Phone', body: employee.phone_number },
+      ...(employee.second_phone_number
+        ? [{ id: 'second_phone', header: 'Alternate Phone', body: employee.second_phone_number }]
+        : []),
+      { id: 'address', header: 'Address', body: employee.address },
     ],
+
     linksModuleData: {
       uris: [
-        {
-          uri: `${process.env.BASE_URL}/employees/${employee.employee_id}/contact`,
-          description: 'Download vCard',
-          id: 'vcard_link',
-        },
         ...(employee.social_links?.linkedin
           ? [
               {
@@ -248,11 +217,20 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
               },
             ]
           : []),
+        ...(companyProfile?.website_link
+          ? [
+              {
+                uri: companyProfile.website_link,
+                description: 'Company Website',
+                id: 'company_website',
+              },
+            ]
+          : []),
       ],
     },
     barcode: {
       type: 'QR_CODE',
-      value: `${process.env.BASE_URL}/employees/${employee.employee_id}/contact`,
+      value: `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`,
       alternateText: employee.employee_id,
     },
     hexBackgroundColor: '#1a73e8',
