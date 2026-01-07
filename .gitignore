@@ -19,3 +19,6 @@ certificates/
 
 # Temporary pass files
 src/temp/apple-passes/*.pkpass
+testAppleWallet.js
+imageDiagnostic.js
+test-pass.pkpass

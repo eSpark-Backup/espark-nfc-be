@@ -7,10 +7,7 @@
   "logoText": "Euro Systems",
   "foregroundColor": "rgb(255, 255, 255)",
   "backgroundColor": "rgb(26, 115, 232)",
-  "strip": "strip.png",
-  "thumbnail": "thumbnail.png",
-  "icon": "icon.png",
-  "logo": "logo.png",
+  "labelColor": "rgb(255, 255, 255)",
   "barcodes": [],
-  "generic": {}
+  "generic": { "primaryFields": [], "secondaryFields": [], "auxiliaryFields": [], "backFields": [] }
 }

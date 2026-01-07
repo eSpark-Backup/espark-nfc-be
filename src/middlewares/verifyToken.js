@@ -6,13 +6,24 @@ import { Admin } from '../models/admin.model.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 
 export const verifyToken = asyncWrapper(async (req, res, next) => {
+  // if (
+  //   req.method === 'GET' &&
+  //   /^\/api\/employees\/[a-fA-F0-9]{24}$/.test(req.originalUrl.split('?')[0])
+  // ) {
+  //   return next();
+  // }
 
-// if (
-//   req.method === 'GET' &&
-//   /^\/api\/employees\/[a-fA-F0-9]{24}$/.test(req.originalUrl.split('?')[0])
-// ) {
-//   return next();
-// }
+  const requestPath = req.originalUrl.split('?')[0];
+
+  const EMPLOYEE_ID_PATTERN = '(?:[a-zA-Z]{2}\\d+|[a-fA-F0-9]{24})';
+
+  if (
+    new RegExp(`^/api/employees/wallet/apple/${EMPLOYEE_ID_PATTERN}/generate$`).test(requestPath) ||
+    new RegExp(`^/api/employees/wallet/apple/${EMPLOYEE_ID_PATTERN}/download$`).test(requestPath) ||
+    new RegExp(`^/api/employees/wallet/google/${EMPLOYEE_ID_PATTERN}/generate$`).test(requestPath)
+  ) {
+    return next();
+  }
 
   const authHeader = req.headers.authorization;
 

@@ -17,7 +17,7 @@ import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 export const googleWalletRoutes = express.Router();
 
 // Apply authentication and company profile check to all routes
-googleWalletRoutes.use(verifyToken, companyProfileExists);
+// googleWalletRoutes.use(verifyToken, companyProfileExists);
 
 /**
  * @swagger

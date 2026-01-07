@@ -86,7 +86,6 @@ export const generateAppleWalletPass = asyncWrapper(async (req, res, next) => {
 export const downloadAppleWalletPass = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
 
-  // Find employee by _id or employee_id
   const query = mongoose.Types.ObjectId.isValid(id)
     ? { _id: id }
     : { employee_id: { $regex: new RegExp(`^${id}$`, 'i') } };
@@ -119,14 +118,27 @@ export const downloadAppleWalletPass = asyncWrapper(async (req, res, next) => {
   // Read pass file
   const passBuffer = fs.readFileSync(passFilePath);
 
-  // Set headers for .pkpass download
+  // CRITICAL: Generate safe filename for iPhone
+  const safeEmployeeName = employee.name.replace(/[^a-zA-Z0-9]/g, '_');
+  const safeEmployeeId = employee.employee_id.replace(/[^a-zA-Z0-9]/g, '_');
+  const fileName = `${safeEmployeeName}_${safeEmployeeId}.pkpass`;
+
+  console.log(`📱 Serving pass for download: ${fileName}`);
+  console.log(`   File size: ${(passBuffer.length / 1024).toFixed(2)} KB`);
+  console.log(`   User-Agent: ${req.headers['user-agent']?.substring(0, 50)}...`);
+
+  // CRITICAL: Set proper headers for iPhone download
+  // These headers are REQUIRED for iPhone to recognize and download the pass
   res.setHeader('Content-Type', 'application/vnd.apple.pkpass');
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="${employee.name.replace(/\s+/g, '_')}_${employee.employee_id}.pkpass"`
-  );
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
   res.setHeader('Content-Length', passBuffer.length);
 
+  // Additional headers for better compatibility
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  // CRITICAL: Send as binary
   res.status(HTTP_STATUS.OK).send(passBuffer);
 });
 

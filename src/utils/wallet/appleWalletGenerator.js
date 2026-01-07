@@ -1,7 +1,6 @@
 import { PKPass } from 'passkit-generator';
 import { appleWalletConfig } from '../../config/appleWalletConfig.js';
 import {
-  createApplePassJSON,
   validateEmployeeDataForApple,
   getPassMetadata,
 } from '../../templates/wallet/applePassTemplate.js';
@@ -15,26 +14,17 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * Apple Wallet Pass Generator
- * Handles creation and management of Apple Wallet passes for employees
- */
-
 class AppleWalletGenerator {
   constructor() {
     this.initialized = false;
     this.tempDir = path.resolve(__dirname, '../../temp/apple-passes');
   }
 
-  /**
-   * Initialize the generator
-   */
   async initialize() {
     if (!this.initialized) {
       appleWalletConfig.validateConfig();
       await appleWalletConfig.initialize();
 
-      // Create temp directory if it doesn't exist
       if (!fs.existsSync(this.tempDir)) {
         fs.mkdirSync(this.tempDir, { recursive: true });
       }
@@ -44,230 +34,254 @@ class AppleWalletGenerator {
     }
   }
 
-  applyEmployeeDataToPass(pass, employee, companyProfile, serialNumber) {
-    pass.serialNumber = serialNumber;
-
-    const authToken = crypto.randomUUID();
-
-    pass.webServiceURL = `${process.env.BASE_URL}/api/apple-wallet`;
-    pass.authenticationToken = authToken;
-
-    this._lastGeneratedAuthToken = authToken;
-
-    const barcodeMessage =
-      employee.qr_url || `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`;
-
-    pass.setBarcodes({
-      format: 'PKBarcodeFormatQR',
-      message: barcodeMessage,
-      messageEncoding: 'iso-8859-1',
-      altText: employee.employee_id,
-    });
-
-    pass.primaryFields.push({
-      key: 'name',
-      label: 'NAME',
-      value: employee.name,
-    });
-
-    pass.secondaryFields.push(
-      {
-        key: 'designation',
-        label: 'DESIGNATION',
-        value: employee.designation,
-      },
-      {
-        key: 'employee_id',
-        label: 'EMPLOYEE ID',
-        value: employee.employee_id,
-      }
-    );
-
-    pass.backFields.push(
-      {
-        key: 'email',
-        label: 'Email',
-        value: employee.email,
-      },
-      {
-        key: 'phone',
-        label: 'Phone',
-        value: employee.phone_number,
-      },
-      ...(employee.second_phone_number
-        ? [
-            {
-              key: 'second_phone',
-              label: 'Alternate Phone',
-              value: employee.second_phone_number,
-            },
-          ]
-        : []),
-      {
-        key: 'company_website',
-        label: 'Company Website',
-        value: companyProfile.website_link,
-      },
-      {
-        key: 'address',
-        label: 'Address',
-        value: employee.address,
-      }
-    );
-
-    if (employee.social_links) {
-      const { facebook, twitter, instagram, linkedin, youtube } = employee.social_links;
-
-      if (facebook)
-        pass.backFields.push({
-          key: 'facebook',
-          label: 'Facebook',
-          value: facebook,
-        });
-
-      if (twitter)
-        pass.backFields.push({
-          key: 'twitter',
-          label: 'Twitter',
-          value: twitter,
-        });
-
-      if (instagram)
-        pass.backFields.push({
-          key: 'instagram',
-          label: 'Instagram',
-          value: instagram,
-        });
-
-      if (linkedin)
-        pass.backFields.push({
-          key: 'linkedin',
-          label: 'LinkedIn',
-          value: linkedin,
-        });
-      if (youtube)
-        pass.backFields.push({
-          key: 'youtube',
-          label: 'Youtube',
-          value: youtube,
-        });
-    }
-  }
-
-  getLastAuthToken() {
-    return this._lastGeneratedAuthToken;
-  }
-
   /**
    * Download image from URL and convert to buffer
+   * CRITICAL FIX: Handles WebP and converts to PNG
    */
   async downloadImage(imageUrl) {
     try {
+      console.log(`📥 Downloading image: ${imageUrl}`);
+
       const response = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
-        timeout: 10000,
+        timeout: 15000, // Increased timeout
       });
-      return Buffer.from(response.data);
+
+      const buffer = Buffer.from(response.data);
+      console.log(`✅ Downloaded ${buffer.length} bytes`);
+
+      return buffer;
     } catch (error) {
-      console.error(`Failed to download image from ${imageUrl}:`, error.message);
+      console.error(`❌ Failed to download image from ${imageUrl}:`, error.message);
       return null;
     }
   }
 
   /**
-   * Resize image to specified dimensions
+   * CRITICAL FIX: Resize image and FORCE convert to PNG
+   * This ensures WebP images are converted to PNG for Apple Wallet
    */
-  async resizeImage(imageBuffer, width, height) {
+  async resizeImage(imageBuffer, width, height, imageName) {
     try {
-      return await sharp(imageBuffer)
+      console.log(`🔄 Processing ${imageName}: ${width}x${height}`);
+
+      const resizedBuffer = await sharp(imageBuffer)
         .resize(width, height, {
           fit: 'cover',
           position: 'center',
         })
-        .png()
+        .png({
+          // CRITICAL: Force PNG output regardless of input format
+          quality: 100,
+          compressionLevel: 9,
+        })
         .toBuffer();
+
+      console.log(`✅ ${imageName} created: ${resizedBuffer.length} bytes`);
+      return resizedBuffer;
     } catch (error) {
-      console.error('Failed to resize image:', error.message);
+      console.error(`❌ Failed to resize ${imageName}:`, error.message);
       throw error;
     }
   }
 
   /**
-   * Prepare images for pass
+   * FIXED: Prepare images with WebP support and proper logging
    */
   async preparePassImages(employee, companyProfile) {
     const images = {};
+    let successCount = 0;
+    let failCount = 0;
 
     try {
-      // Icon images (from company logo)
+      console.log('\n🖼️  Preparing pass images...');
+
+      // Icon images (from company logo) - MUST be square
       if (companyProfile?.profile_image?.image_url) {
+        console.log('📸 Processing company logo...');
         const logoBuffer = await this.downloadImage(companyProfile.profile_image.image_url);
 
         if (logoBuffer) {
-          // Icon (29x29, 58x58, 87x87)
-          images['icon.png'] = await this.resizeImage(logoBuffer, 29, 29);
-          images['icon@2x.png'] = await this.resizeImage(logoBuffer, 58, 58);
-          images['icon@3x.png'] = await this.resizeImage(logoBuffer, 87, 87);
+          try {
+            // Icon - MUST be square
+            images['icon.png'] = await this.resizeImage(logoBuffer, 29, 29, 'icon.png');
+            successCount++;
+            images['icon@2x.png'] = await this.resizeImage(logoBuffer, 58, 58, 'icon@2x.png');
+            successCount++;
+            images['icon@3x.png'] = await this.resizeImage(logoBuffer, 87, 87, 'icon@3x.png');
+            successCount++;
 
-          // Logo (160x50, 320x100, 480x150)
-          images['logo.png'] = await this.resizeImage(logoBuffer, 160, 50);
-          images['logo@2x.png'] = await this.resizeImage(logoBuffer, 320, 100);
-          images['logo@3x.png'] = await this.resizeImage(logoBuffer, 480, 150);
+            // Logo - Used in upper left
+            images['logo.png'] = await this.resizeImage(logoBuffer, 160, 50, 'logo.png');
+            successCount++;
+            images['logo@2x.png'] = await this.resizeImage(logoBuffer, 320, 100, 'logo@2x.png');
+            successCount++;
+            images['logo@3x.png'] = await this.resizeImage(logoBuffer, 480, 150, 'logo@3x.png');
+            successCount++;
+
+            console.log('✅ Company logo processed successfully (6 images)');
+          } catch (err) {
+            console.error('❌ Error processing company logo:', err.message);
+            failCount += 6;
+          }
+        } else {
+          console.warn('⚠️  Company logo download failed');
+          failCount += 6;
         }
+      } else {
+        console.warn('⚠️  No company logo available');
+        failCount += 6;
       }
 
-      // Strip images (from employee profile photo)
+      // Strip and Thumbnail images (from employee profile photo)
       if (employee?.profile_image?.image_url) {
+        console.log('📸 Processing employee photo...');
         const profileBuffer = await this.downloadImage(employee.profile_image.image_url);
 
         if (profileBuffer) {
-          // Strip (375x123, 750x246, 1125x369)
-          images['strip.png'] = await this.resizeImage(profileBuffer, 375, 123);
-          images['strip@2x.png'] = await this.resizeImage(profileBuffer, 750, 246);
-          images['strip@3x.png'] = await this.resizeImage(profileBuffer, 1125, 369);
+          try {
+            // Strip image - Full width background image
+            images['strip.png'] = await this.resizeImage(profileBuffer, 375, 123, 'strip.png');
+            successCount++;
+            images['strip@2x.png'] = await this.resizeImage(
+              profileBuffer,
+              750,
+              246,
+              'strip@2x.png'
+            );
+            successCount++;
+            images['strip@3x.png'] = await this.resizeImage(
+              profileBuffer,
+              1125,
+              369,
+              'strip@3x.png'
+            );
+            successCount++;
 
-          // Thumbnail (optional - 90x90, 180x180, 270x270)
-          images['thumbnail.png'] = await this.resizeImage(profileBuffer, 90, 90);
-          images['thumbnail@2x.png'] = await this.resizeImage(profileBuffer, 180, 180);
-          images['thumbnail@3x.png'] = await this.resizeImage(profileBuffer, 270, 270);
+            // Define pass folder at the top of preparePassImages
+            const passFolder = path.join(__dirname, '../../pass-templates/employee.pass');
+
+            // Thumbnail - MUST be square, appears in top-left corner
+            images['thumbnail.png'] = await this.resizeImage(
+              profileBuffer,
+              90,
+              90,
+              'thumbnail.png'
+            );
+            successCount++;
+            images['thumbnail@2x.png'] = await this.resizeImage(
+              profileBuffer,
+              180,
+              180,
+              'thumbnail@2x.png'
+            );
+            successCount++;
+            images['thumbnail@3x.png'] = await this.resizeImage(
+              profileBuffer,
+              270,
+              270,
+              'thumbnail@3x.png'
+            );
+            successCount++;
+
+            // ---- NEW: Save thumbnails temporarily in pass folder ----
+            try {
+              fs.writeFileSync(path.join(passFolder, 'thumbnail.png'), images['thumbnail.png']);
+              fs.writeFileSync(
+                path.join(passFolder, 'thumbnail@2x.png'),
+                images['thumbnail@2x.png']
+              );
+              fs.writeFileSync(
+                path.join(passFolder, 'thumbnail@3x.png'),
+                images['thumbnail@3x.png']
+              );
+              console.log('✅ Employee thumbnail images saved temporarily in pass folder');
+            } catch (err) {
+              console.error('❌ Failed to save thumbnails to pass folder:', err.message);
+            }
+
+            console.log('✅ Employee photo processed successfully (6 images)');
+          } catch (err) {
+            console.error('❌ Error processing employee photo:', err.message);
+            failCount += 6;
+          }
+        } else {
+          console.warn('⚠️  Employee photo download failed');
+          failCount += 6;
         }
+      } else {
+        console.warn('⚠️  No employee photo available');
+        failCount += 6;
       }
 
-      // If no images were prepared, use placeholder
+      console.log(`\n📊 Image Processing Summary:`);
+      console.log(`   ✅ Success: ${successCount} images`);
+      console.log(`   ❌ Failed: ${failCount} images`);
+      console.log(`   📦 Total: ${Object.keys(images).length} images prepared\n`);
+
+      // Validate that we have at least some images
       if (Object.keys(images).length === 0) {
-        console.warn('No images available, pass will be created without custom images');
+        console.error('❌ CRITICAL: No images were successfully prepared!');
+        console.error('   This will result in an invalid pass.');
       }
 
       return images;
     } catch (error) {
-      console.error('Error preparing pass images:', error.message);
-      return {}; // Return empty object, pass can still be created
+      console.error('❌ Critical error preparing pass images:', error.message);
+      console.error('Stack:', error.stack);
+      return {};
     }
   }
 
   /**
-   * Generate Apple Wallet pass for employee
+   * CRITICAL FIX: Generate pass with proper data application
+   * The issue was that pass data wasn't being saved to pass.json properly
    */
   async generatePass(employee, companyProfile) {
     try {
       await this.initialize();
 
+      console.log('\n🎫 Starting pass generation...');
+      console.log(`   Employee: ${employee.name} (${employee.employee_id})`);
+      console.log(`   Company: ${companyProfile.company_name}\n`);
+
       // Validate employee data
       validateEmployeeDataForApple(employee);
 
-      // Generate unique serial number
+      // Generate unique serial number and auth token
       const serialNumber = appleWalletConfig.generateSerialNumber(employee._id);
+      const authToken = crypto.randomUUID();
+
+      console.log(`   Serial: ${serialNumber}`);
+      console.log(`   Auth Token: ${authToken.substring(0, 8)}...\n`);
+
+      // Store auth token for later retrieval
+      this._lastGeneratedAuthToken = authToken;
 
       // Get certificates
       const certificates = appleWalletConfig.getCertificates();
 
-      // Create pass JSON
-      const passJSON = createApplePassJSON(employee, companyProfile, serialNumber);
-
       const passFolder = path.join(__dirname, '../../pass-templates/employee.pass');
 
-      // Prepare images
+      // Verify pass folder exists
+      if (!fs.existsSync(passFolder)) {
+        throw new Error(`Pass template folder not found: ${passFolder}`);
+      }
+
+      // Verify pass.json exists
+      const passJsonPath = path.join(passFolder, 'pass.json');
+      if (!fs.existsSync(passJsonPath)) {
+        throw new Error(`pass.json not found in template folder: ${passJsonPath}`);
+      }
+
+      // Prepare images BEFORE creating pass
       const images = await this.preparePassImages(employee, companyProfile);
+
+      if (Object.keys(images).length === 0) {
+        console.warn('⚠️  WARNING: No images prepared. Pass will have no visual elements.');
+      }
+
+      console.log(`📦 Creating PKPass object with ${Object.keys(images).length} image(s)...`);
 
       // Create pass using passkit-generator
       const pass = await PKPass.from(
@@ -282,12 +296,131 @@ class AppleWalletGenerator {
         images
       );
 
-      this.applyEmployeeDataToPass(pass, employee, companyProfile, serialNumber);
+      console.log('✅ PKPass object created');
 
-      // Generate .pkpass file
+      // CRITICAL: Set these BEFORE adding fields
+      console.log('📝 Applying pass metadata...');
+      pass.serialNumber = serialNumber;
+      pass.webServiceURL = `${process.env.BASE_URL}/api/apple-wallet`;
+      pass.authenticationToken = authToken;
+
+      // Prepare barcode data
+      const barcodeMessage =
+        employee.qr_url || `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`;
+
+      console.log('📝 Setting barcode...');
+      pass.setBarcodes({
+        format: 'PKBarcodeFormatQR',
+        message: barcodeMessage,
+        messageEncoding: 'iso-8859-1',
+        altText: employee.employee_id,
+      });
+
+      // Add fields
+      console.log('📝 Adding pass fields...');
+
+      // Primary field
+      pass.primaryFields.push({
+        key: 'name',
+        label: 'NAME',
+        value: employee.name,
+      });
+
+      // Secondary fields
+      pass.secondaryFields.push(
+        {
+          key: 'designation',
+          label: 'DESIGNATION',
+          value: employee.designation,
+        },
+        {
+          key: 'employee_id',
+          label: 'EMPLOYEE ID',
+          value: employee.employee_id,
+        }
+      );
+
+      // Back fields
+      const backFields = [
+        {
+          key: 'email',
+          label: 'Email',
+          value: employee.email,
+        },
+        {
+          key: 'phone',
+          label: 'Phone',
+          value: employee.phone_number,
+        },
+      ];
+
+      if (employee.second_phone_number) {
+        backFields.push({
+          key: 'second_phone',
+          label: 'Alternate Phone',
+          value: employee.second_phone_number,
+        });
+      }
+
+      backFields.push(
+        {
+          key: 'company_website',
+          label: 'Company Website',
+          value: companyProfile.website_link,
+        },
+        {
+          key: 'address',
+          label: 'Address',
+          value: employee.address,
+        }
+      );
+
+      // Add social links if available
+      if (employee.social_links) {
+        const { facebook, twitter, instagram, linkedin, youtube } = employee.social_links;
+
+        if (facebook) backFields.push({ key: 'facebook', label: 'Facebook', value: facebook });
+        if (twitter) backFields.push({ key: 'twitter', label: 'Twitter', value: twitter });
+        if (instagram) backFields.push({ key: 'instagram', label: 'Instagram', value: instagram });
+        if (linkedin) backFields.push({ key: 'linkedin', label: 'LinkedIn', value: linkedin });
+        if (youtube) backFields.push({ key: 'youtube', label: 'Youtube', value: youtube });
+      }
+
+      pass.backFields.push(...backFields);
+
+      console.log(`✅ Pass structure complete:`);
+      console.log(`   Primary fields: ${pass.primaryFields.length}`);
+      console.log(`   Secondary fields: ${pass.secondaryFields.length}`);
+      console.log(`   Back fields: ${pass.backFields.length}`);
+
+      // Generate .pkpass file (this creates the signed ZIP)
+      console.log('\n🔐 Generating signed .pkpass file...');
       const passBuffer = pass.getAsBuffer();
 
-      console.log('✅ Apple Wallet pass generated successfully:', serialNumber);
+      // Validate the generated pass
+      if (!this.validatePassBuffer(passBuffer)) {
+        throw new Error('Generated pass buffer is invalid');
+      }
+
+      const thumbnailFiles = ['thumbnail.png', 'thumbnail@2x.png', 'thumbnail@3x.png'];
+      const passTemplateFolder = path.join(__dirname, '../../pass-templates/employee.pass');
+
+      thumbnailFiles.forEach((file) => {
+        const filePath = path.join(passTemplateFolder, file);
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`✅ Deleted temporary file: ${file}`);
+          } catch (err) {
+            console.warn(`⚠️ Could not delete ${file}: ${err.message}`);
+          }
+        }
+      });
+
+      console.log('✅ Apple Wallet pass generated successfully!');
+      console.log(`   Serial: ${serialNumber}`);
+      console.log(`   Size: ${(passBuffer.length / 1024).toFixed(2)} KB`);
+      console.log(`   Images included: ${Object.keys(images).length}`);
 
       return {
         success: true,
@@ -296,14 +429,16 @@ class AppleWalletGenerator {
         metadata: getPassMetadata(employee, serialNumber),
       };
     } catch (error) {
-      console.error('❌ Error generating Apple Wallet pass:', error.message);
+      console.error('\n❌ CRITICAL ERROR generating Apple Wallet pass:', error.message);
+      console.error('Stack:', error.stack);
       throw new Error(`Failed to generate Apple Wallet pass: ${error.message}`);
     }
   }
 
-  /**
-   * Save pass to file system
-   */
+  getLastAuthToken() {
+    return this._lastGeneratedAuthToken;
+  }
+
   async savePassToFile(passBuffer, employeeId) {
     try {
       const fileName = `employee_${employeeId}_${Date.now()}.pkpass`;
@@ -324,9 +459,6 @@ class AppleWalletGenerator {
     }
   }
 
-  /**
-   * Delete pass file from file system
-   */
   async deletePassFile(filePath) {
     try {
       if (fs.existsSync(filePath)) {
@@ -341,14 +473,11 @@ class AppleWalletGenerator {
     }
   }
 
-  /**
-   * Clean up old pass files (older than 24 hours)
-   */
   async cleanupOldPasses() {
     try {
       const files = fs.readdirSync(this.tempDir);
       const now = Date.now();
-      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const maxAge = 24 * 60 * 60 * 1000;
 
       let deletedCount = 0;
 
@@ -376,9 +505,6 @@ class AppleWalletGenerator {
     }
   }
 
-  /**
-   * Get pass file info
-   */
   getPassFileInfo(filePath) {
     try {
       if (!fs.existsSync(filePath)) {
@@ -401,9 +527,6 @@ class AppleWalletGenerator {
     }
   }
 
-  /**
-   * Generate pass and return as base64 (for API responses)
-   */
   async generatePassBase64(employee, companyProfile) {
     try {
       const result = await this.generatePass(employee, companyProfile);
@@ -424,26 +547,34 @@ class AppleWalletGenerator {
   }
 
   /**
-   * Validate pass buffer
+   * IMPROVED: Validate pass buffer with detailed checks
    */
   validatePassBuffer(passBuffer) {
     try {
-      // Check if buffer is valid
       if (!Buffer.isBuffer(passBuffer)) {
+        console.error('❌ Pass buffer is not a valid Buffer object');
         return false;
       }
 
-      // Check if buffer is not empty
       if (passBuffer.length === 0) {
+        console.error('❌ Pass buffer is empty');
         return false;
       }
 
-      // Check for PKPass signature (ZIP file magic number: PK)
-      const header = passBuffer.slice(0, 2).toString('hex');
-      if (header !== '504b') {
+      // Check for PKPass signature (ZIP file magic number: PK\x03\x04)
+      const header = passBuffer.slice(0, 4).toString('hex');
+      if (!header.startsWith('504b0304')) {
+        console.error('❌ Pass buffer does not have valid ZIP signature');
+        console.error(`   Found header: ${header}, expected: 504b0304...`);
         return false;
       }
 
+      // Check minimum size (a valid .pkpass should be at least a few KB)
+      if (passBuffer.length < 5000) {
+        console.warn('⚠️  Pass buffer seems unusually small:', passBuffer.length, 'bytes');
+      }
+
+      console.log('✅ Pass buffer validation passed');
       return true;
     } catch (error) {
       console.error('❌ Error validating pass buffer:', error.message);
@@ -452,5 +583,4 @@ class AppleWalletGenerator {
   }
 }
 
-// Export singleton instance
 export const appleWalletGenerator = new AppleWalletGenerator();

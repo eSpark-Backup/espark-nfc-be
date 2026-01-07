@@ -18,7 +18,7 @@ import { companyProfileExists } from '../middlewares/companyProfileExists.js';
 export const appleWalletRoutes = express.Router();
 
 // Apply authentication and company profile check to all routes
-appleWalletRoutes.use(verifyToken, companyProfileExists);
+// appleWalletRoutes.use(verifyToken, companyProfileExists);
 
 /**
  * @swagger

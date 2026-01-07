@@ -24,6 +24,7 @@
   "author": "Owais Shaikh",
   "license": "MIT",
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.2",
