@@ -140,6 +140,14 @@ export const downloadAppleWalletPass = asyncWrapper(async (req, res, next) => {
 
   // CRITICAL: Send as binary
   res.status(HTTP_STATUS.OK).send(passBuffer);
+
+  fs.unlink(passFilePath, (err) => {
+    if (err) {
+      console.error(`Failed to delete Apple Wallet pass: ${passFilePath}`, err);
+    } else {
+      console.log(`✅ Apple Wallet pass deleted: ${passFilePath}`);
+    }
+  });
 });
 
 /**
