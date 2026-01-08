@@ -6,209 +6,108 @@ import {
   getUpdatedPasses,
   logError,
 } from '../controllers/appleWalletWebService.controller.js';
+import {
+  verifyAppleWalletAuth,
+  verifyAppleWalletAuthForRegistration,
+  logAppleWalletRequest,
+} from '../middlewares/verifyAppleWalletAuth.js';
 
 export const appleWalletWebServiceRoutes = express.Router();
 
 /**
  * Apple Wallet Web Service Routes
- * These routes follow Apple's PassKit Web Service specification
+ *
+ * These routes implement Apple's PassKit Web Service specification:
  * https://developer.apple.com/documentation/walletpasses/adding_a_web_service_to_update_passes
+ *
+ * IMPORTANT: These routes are called by Apple Wallet on iOS devices
+ * Route patterns must match Apple's specification exactly!
+ *
+ * Base URL in pass.json should be: https://yourdomain.com/api/apple-wallet
+ *
+ * Route Pattern Explanation:
+ * - :deviceId = Device Library Identifier (e.g., 9e693d19d15e4072bd3f1aa1d4ee0c08)
+ * - :passTypeId = Pass Type Identifier (e.g., pass.com.eurosystemsint.nfc)
+ * - :serialNumber = Unique pass serial number (e.g., EMP-6940295c8051fa6a20d82344-1767869159047)
  */
 
-/**
- * @swagger
- * /api/apple-wallet/v1/passes/{passTypeId}/{serialNumber}:
- *   get:
- *     summary: Get the latest version of a pass (Apple Wallet web service)
- *     tags: [Apple Wallet Web Service]
- *     description: Apple Wallet calls this endpoint to check for pass updates
- *     parameters:
- *       - in: path
- *         name: passTypeId
- *         required: true
- *         schema:
- *           type: string
- *         description: Pass type identifier (e.g., pass.com.example.employee)
- *       - in: path
- *         name: serialNumber
- *         required: true
- *         schema:
- *           type: string
- *         description: Unique pass serial number
- *       - in: header
- *         name: Authorization
- *         required: true
- *         schema:
- *           type: string
- *         description: ApplePass authentication token
- *       - in: header
- *         name: If-Modified-Since
- *         required: false
- *         schema:
- *           type: string
- *         description: Only return pass if modified after this date
- *     responses:
- *       200:
- *         description: Latest pass returned
- *         content:
- *           application/vnd.apple.pkpass:
- *             schema:
- *               type: string
- *               format: binary
- *       304:
- *         description: Pass not modified since If-Modified-Since header
- *       401:
- *         description: Invalid authentication token
- *       410:
- *         description: Pass no longer available
- */
-appleWalletWebServiceRoutes.route('/v1/passes/:passTypeId/:serialNumber').get(getPass);
+// Optional: Log all requests for debugging (remove in production if not needed)
+appleWalletWebServiceRoutes.use(logAppleWalletRequest);
 
 /**
- * @swagger
- * /api/apple-wallet/v1/devices/{deviceId}/registrations/{passTypeId}/{serialNumber}:
- *   post:
- *     summary: Register a device for push notifications
- *     tags: [Apple Wallet Web Service]
- *     description: Apple Wallet calls this to register for pass updates
- *     parameters:
- *       - in: path
- *         name: deviceId
- *         required: true
- *         schema:
- *           type: string
- *         description: Unique device identifier
- *       - in: path
- *         name: passTypeId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: serialNumber
- *         required: true
- *         schema:
- *           type: string
- *       - in: header
- *         name: Authorization
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               pushToken:
- *                 type: string
- *     responses:
- *       201:
- *         description: Device registered successfully
- *       200:
- *         description: Device already registered
- *       401:
- *         description: Invalid authentication
+ * GET /v1/passes/:passTypeId/:serialNumber
+ *
+ * Get the latest version of a pass
+ *
+ * Called by Apple Wallet to:
+ * - Download pass when user adds it
+ * - Check for pass updates
+ *
+ * Authentication: Required (ApplePass token)
+ */
+appleWalletWebServiceRoutes
+  .route('/v1/passes/:passTypeId/:serialNumber')
+  .get(verifyAppleWalletAuth, getPass);
+
+/**
+ * POST /v1/devices/:deviceId/registrations/:passTypeId/:serialNumber
+ *
+ * Register a device for push notifications
+ *
+ * Called when user adds pass to Apple Wallet
+ *
+ * Authentication: Required (ApplePass token)
  */
 appleWalletWebServiceRoutes
   .route('/v1/devices/:deviceId/registrations/:passTypeId/:serialNumber')
-  .post(registerDevice);
+  .post(verifyAppleWalletAuthForRegistration, registerDevice);
 
 /**
- * @swagger
- * /api/apple-wallet/v1/devices/{deviceId}/registrations/{passTypeId}/{serialNumber}:
- *   delete:
- *     summary: Unregister a device from push notifications
- *     tags: [Apple Wallet Web Service]
- *     parameters:
- *       - in: path
- *         name: deviceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: passTypeId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: serialNumber
- *         required: true
- *         schema:
- *           type: string
- *       - in: header
- *         name: Authorization
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Device unregistered successfully
- *       401:
- *         description: Invalid authentication
+ * DELETE /v1/devices/:deviceId/registrations/:passTypeId/:serialNumber
+ *
+ * Unregister a device
+ *
+ * Called when user removes pass from Apple Wallet
+ *
+ * Authentication: Required (ApplePass token)
  */
 appleWalletWebServiceRoutes
   .route('/v1/devices/:deviceId/registrations/:passTypeId/:serialNumber')
-  .delete(unregisterDevice);
+  .delete(verifyAppleWalletAuthForRegistration, unregisterDevice);
 
 /**
- * @swagger
- * /api/apple-wallet/v1/devices/{deviceId}/registrations/{passTypeId}:
- *   get:
- *     summary: Get serial numbers of passes that have been updated
- *     tags: [Apple Wallet Web Service]
- *     parameters:
- *       - in: path
- *         name: deviceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: passTypeId
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: passesUpdatedSince
- *         schema:
- *           type: string
- *         description: ISO 8601 date
- *     responses:
- *       200:
- *         description: List of updated pass serial numbers
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 lastUpdated:
- *                   type: string
- *                 serialNumbers:
- *                   type: array
- *                   items:
- *                     type: string
+ * GET /v1/devices/:deviceId/registrations/:passTypeId
+ *
+ * Get serial numbers of passes that need updating
+ *
+ * Called periodically by Apple Wallet to check for updates
+ * Query param: ?passesUpdatedSince=<ISO 8601 timestamp>
+ *
+ * Authentication: Not required (Apple's spec says this endpoint doesn't need auth)
  */
 appleWalletWebServiceRoutes
   .route('/v1/devices/:deviceId/registrations/:passTypeId')
   .get(getUpdatedPasses);
 
 /**
- * @swagger
- * /api/apple-wallet/v1/log:
- *   post:
- *     summary: Log errors from Apple Wallet
- *     tags: [Apple Wallet Web Service]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               logs:
- *                 type: array
- *     responses:
- *       200:
- *         description: Logs received
+ * POST /v1/log
+ *
+ * Log errors from Apple Wallet
+ *
+ * Apple Wallet sends error logs here for debugging
+ *
+ * Authentication: Not required
  */
 appleWalletWebServiceRoutes.route('/v1/log').post(logError);
+
+/**
+ * Health check endpoint (optional - for monitoring)
+ * Not part of Apple's spec, but useful for debugging
+ */
+appleWalletWebServiceRoutes.route('/health').get((req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    service: 'Apple Wallet Web Service',
+    timestamp: new Date().toISOString(),
+  });
+});
