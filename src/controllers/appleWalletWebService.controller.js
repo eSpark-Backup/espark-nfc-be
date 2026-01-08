@@ -3,11 +3,6 @@ import { asyncWrapper } from '../utils/asyncWrapper.js';
 import fs from 'fs';
 
 /**
- * MINIMAL Apple Wallet Web Service
- * Just enough to keep Apple Wallet happy
- */
-
-/**
  * Get pass (Apple Wallet checks for updates)
  */
 export const getPass = asyncWrapper(async (req, res) => {

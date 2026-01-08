@@ -10,6 +10,10 @@ import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import axios from 'axios';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+import AdmZip from 'adm-zip';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,7 +123,7 @@ class AppleWalletGenerator {
             images['logo@3x.png'] = await this.resizeImage(logoBuffer, 480, 150, 'logo@3x.png');
             successCount++;
 
-            console.log('✅ Company logo processed successfully (6 images)');
+            console.log('✅ Company logo processed successfully');
           } catch (err) {
             console.error('❌ Error processing company logo:', err.message);
             failCount += 6;
@@ -141,22 +145,22 @@ class AppleWalletGenerator {
         if (profileBuffer) {
           try {
             // Strip image - Full width background image
-            images['strip.png'] = await this.resizeImage(profileBuffer, 375, 123, 'strip.png');
-            successCount++;
-            images['strip@2x.png'] = await this.resizeImage(
-              profileBuffer,
-              750,
-              246,
-              'strip@2x.png'
-            );
-            successCount++;
-            images['strip@3x.png'] = await this.resizeImage(
-              profileBuffer,
-              1125,
-              369,
-              'strip@3x.png'
-            );
-            successCount++;
+            // images['strip.png'] = await this.resizeImage(profileBuffer, 375, 123, 'strip.png');
+            // successCount++;
+            // images['strip@2x.png'] = await this.resizeImage(
+            //   profileBuffer,
+            //   750,
+            //   246,
+            //   'strip@2x.png'
+            // );
+            // successCount++;
+            // images['strip@3x.png'] = await this.resizeImage(
+            //   profileBuffer,
+            //   1125,
+            //   369,
+            //   'strip@3x.png'
+            // );
+            // successCount++;
 
             // Define pass folder at the top of preparePassImages
             const passFolder = path.join(__dirname, '../../pass-templates/employee.pass');
@@ -200,7 +204,7 @@ class AppleWalletGenerator {
               console.error('❌ Failed to save thumbnails to pass folder:', err.message);
             }
 
-            console.log('✅ Employee photo processed successfully (6 images)');
+            console.log('✅ Employee photo processed successfully');
           } catch (err) {
             console.error('❌ Error processing employee photo:', err.message);
             failCount += 6;
@@ -293,16 +297,15 @@ class AppleWalletGenerator {
             signerKey: certificates.key,
           },
         },
+        {
+          serialNumber: serialNumber,
+          webServiceURL: `${process.env.BASE_URL}/api/apple-wallet`,
+          authenticationToken: authToken,
+        },
         images
       );
 
       console.log('✅ PKPass object created');
-
-      // CRITICAL: Set these BEFORE adding fields
-      console.log('📝 Applying pass metadata...');
-      pass.serialNumber = serialNumber;
-      pass.webServiceURL = `${process.env.BASE_URL}/api/apple-wallet`;
-      pass.authenticationToken = authToken;
 
       // Prepare barcode data
       const barcodeMessage =
@@ -396,6 +399,15 @@ class AppleWalletGenerator {
       // Generate .pkpass file (this creates the signed ZIP)
       console.log('\n🔐 Generating signed .pkpass file...');
       const passBuffer = pass.getAsBuffer();
+
+      // 🔍 Inspect unzipped pass.json from generated pass
+      const zip = new AdmZip(passBuffer);
+      const passJsonEntry = zip.getEntry('pass.json');
+      if (passJsonEntry) {
+        const generatedPassJson = JSON.parse(passJsonEntry.getData().toString('utf8'));
+        console.log('\n   🔍 Full unzipped generated pass.json:');
+        console.log(JSON.stringify(generatedPassJson, null, 2)); // Pretty-print JSON
+      }
 
       // Validate the generated pass
       if (!this.validatePassBuffer(passBuffer)) {
