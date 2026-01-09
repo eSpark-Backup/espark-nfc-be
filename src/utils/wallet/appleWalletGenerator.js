@@ -297,11 +297,11 @@ class AppleWalletGenerator {
             signerKey: certificates.key,
           },
         },
-        {
-          // serialNumber: serialNumber,
-          // webServiceURL: `${process.env.BASE_URL}/api/apple-wallet`,
-          // authenticationToken: authToken,
-        },
+        // {
+        //   serialNumber: serialNumber,
+        //   webServiceURL: `${process.env.BASE_URL}/api/apple-wallet`,
+        //   authenticationToken: authToken,
+        // },
         images
       );
 
