@@ -298,12 +298,16 @@ class AppleWalletGenerator {
           },
         },
         {
-          serialNumber: serialNumber,
-          webServiceURL: `${process.env.BASE_URL}/api/apple-wallet`,
-          authenticationToken: authToken,
+          // serialNumber: serialNumber,
+          // webServiceURL: `${process.env.BASE_URL}/api/apple-wallet`,
+          // authenticationToken: authToken,
         },
         images
       );
+
+      pass.serialNumber = serialNumber;
+      pass.webServiceURL = `${process.env.BASE_URL}/api/apple-wallet`;
+      pass.authenticationToken = authToken;
 
       console.log('✅ PKPass object created');
 
