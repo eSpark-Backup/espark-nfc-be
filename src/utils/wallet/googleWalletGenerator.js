@@ -171,8 +171,6 @@ class GoogleWalletGenerator {
       // Create JWT
       const token = jwt.sign(claims, serviceAccount.private_key, {
         algorithm: 'RS256',
-        // audience: 'google',
-        // issuer: serviceAccount.client_email,
       });
 
       // Generate save URL
@@ -216,91 +214,6 @@ class GoogleWalletGenerator {
     } catch (error) {
       console.error('❌ Error generating complete pass:', error.message);
       throw error;
-    }
-  }
-
-  /**
-   * Deactivate/expire an employee pass
-   */
-  async deactivatePass(employeeId) {
-    try {
-      await this.initialize();
-
-      const objectId = googleWalletConfig.generateObjectId(employeeId);
-      const endpoints = googleWalletConfig.getEndpoints();
-      const httpClient = await googleWalletConfig.getHttpClient();
-
-      // Update object state to EXPIRED
-      const patchResponse = await httpClient.request({
-        url: `${endpoints.genericObject}/${objectId}`,
-        method: 'PATCH',
-        data: {
-          state: 'EXPIRED',
-        },
-      });
-
-      console.log('✅ Pass deactivated successfully:', objectId);
-
-      return {
-        success: true,
-        message: 'Google Wallet pass deactivated successfully',
-        objectId: objectId,
-      };
-    } catch (error) {
-      if (error.response?.status === 404) {
-        return {
-          success: false,
-          message: 'Pass not found',
-        };
-      }
-      console.error('❌ Error deactivating pass:', error.message);
-      throw new Error(`Failed to deactivate Google Wallet pass: ${error.message}`);
-    }
-  }
-
-  /**
-   * Check if pass exists for employee
-   */
-  async passExists(employeeId) {
-    try {
-      await this.initialize();
-
-      const objectId = googleWalletConfig.generateObjectId(employeeId);
-      const endpoints = googleWalletConfig.getEndpoints();
-      const httpClient = await googleWalletConfig.getHttpClient();
-
-      const response = await httpClient.request({
-        url: `${endpoints.genericObject}/${objectId}`,
-        method: 'GET',
-      });
-
-      return {
-        exists: true,
-        objectId: objectId,
-        state: response.data.state,
-        data: response.data,
-      };
-    } catch (error) {
-      if (error.response?.status === 404) {
-        return {
-          exists: false,
-          objectId: googleWalletConfig.generateObjectId(employeeId),
-        };
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get pass details for employee
-   */
-  async getPassDetails(employeeId) {
-    try {
-      const passInfo = await this.passExists(employeeId);
-      return passInfo;
-    } catch (error) {
-      console.error('❌ Error getting pass details:', error.message);
-      throw new Error(`Failed to get Google Wallet pass details: ${error.message}`);
     }
   }
 }

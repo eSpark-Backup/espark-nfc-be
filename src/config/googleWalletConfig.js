@@ -59,13 +59,6 @@ class GoogleWalletConfig {
   }
 
   /**
-   * Get issuer ID
-   */
-  getIssuerId() {
-    return this.issuerId;
-  }
-
-  /**
    * Generate unique object ID for employee
    */
   generateObjectId(employeeId) {
