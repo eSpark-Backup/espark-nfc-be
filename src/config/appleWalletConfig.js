@@ -1,12 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Apple Wallet Configuration
@@ -82,37 +78,11 @@ class AppleWalletConfig {
   }
 
   /**
-   * Get pass type identifier
-   */
-  getPassTypeId() {
-    return this.passTypeId;
-  }
-
-  /**
-   * Get team identifier
-   */
-  getTeamId() {
-    return this.teamId;
-  }
-
-  /**
    * Generate unique serial number for pass
    */
   generateSerialNumber(employeeId) {
     const timestamp = Date.now();
     return `EMP-${employeeId}-${timestamp}`;
-  }
-
-  /**
-   * Get pass configuration
-   */
-  getPassConfig() {
-    return {
-      passTypeIdentifier: this.passTypeId,
-      teamIdentifier: this.teamId,
-      organizationName: process.env.COMPANY_NAME || 'Company',
-      description: 'Employee Card',
-    };
   }
 
   /**

@@ -1,4 +1,3 @@
-import { Employee } from '../models/employee.model.js';
 import { DeviceRegistration } from '../models/deviceRegistration.model.js';
 import { asyncWrapper } from '../utils/asyncWrapper.js';
 import fs from 'fs';
