@@ -120,28 +120,38 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
     id: objectId,
     classId: classId,
     state: 'ACTIVE',
-    heroImage: {
-      sourceUri: {
-        uri: employee.profile_image?.image_url,
-      },
-      contentDescription: {
-        defaultValue: {
-          language: 'en-US',
-          value: `${employee.name} Profile`,
-        },
-      },
-    },
-    logo: {
-      sourceUri: {
-        uri: companyProfile?.profile_image?.image_url,
-      },
-      contentDescription: {
-        defaultValue: {
-          language: 'en-US',
-          value: companyProfile?.company_name || 'Company Logo',
-        },
-      },
-    },
+    ...(employee.profile_image?.image_url
+      ? {
+          heroImage: {
+            sourceUri: {
+              uri: employee.profile_image.image_url,
+            },
+            contentDescription: {
+              defaultValue: {
+                language: 'en-US',
+                value: `${employee.name} Profile`,
+              },
+            },
+          },
+        }
+      : {}),
+
+    ...(companyProfile?.profile_image?.image_url
+      ? {
+          logo: {
+            sourceUri: {
+              uri: companyProfile.profile_image.image_url,
+            },
+            contentDescription: {
+              defaultValue: {
+                language: 'en-US',
+                value: companyProfile.company_name || 'Company Logo',
+              },
+            },
+          },
+        }
+      : {}),
+
     cardTitle: {
       defaultValue: {
         language: 'en-US',
@@ -170,8 +180,8 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
       { id: 'address', header: 'Address', body: employee.address },
     ],
 
-    linksModuleData: {
-      uris: [
+    ...(() => {
+      const links = [
         ...(employee.social_links?.linkedin
           ? [
               {
@@ -226,8 +236,11 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
               },
             ]
           : []),
-      ],
-    },
+      ];
+
+      return links.length ? { linksModuleData: { uris: links } } : {};
+    })(),
+
     barcode: {
       type: 'QR_CODE',
       value: `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`,
