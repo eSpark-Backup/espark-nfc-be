@@ -9,9 +9,9 @@
   "backgroundColor": "rgb(26, 115, 232)",
   "labelColor": "rgb(255, 255, 255)",
   "barcodes": [],
-  "serialNumber": "",
-  "authenticationToken": "",
-  "webServiceURL": "",
+  "serialNumber": "DUMMY-SERIAL-12345",
+  "authenticationToken": "0000000000000000",
+  "webServiceURL": "https://dummy.example.com",
   "generic": {
     "headerFields": [],
     "primaryFields": [],
