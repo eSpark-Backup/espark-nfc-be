@@ -9,5 +9,15 @@
   "backgroundColor": "rgb(26, 115, 232)",
   "labelColor": "rgb(255, 255, 255)",
   "barcodes": [],
-  "generic": { "primaryFields": [], "secondaryFields": [], "auxiliaryFields": [], "backFields": [] }
+  "serialNumber": "",
+  "authenticationToken": "",
+  "webServiceURL": "",
+  "generic": {
+    "headerFields": [],
+    "primaryFields": [],
+    "secondaryFields": [],
+    "auxiliaryFields": [],
+    "backFields": [],
+    "additionalInfoFields": []
+  }
 }
