@@ -22,3 +22,5 @@ src/temp/apple-passes/*.pkpass
 testAppleWallet.js
 imageDiagnostic.js
 test-pass.pkpass
+nfc-logo-without-text.jpg
+uploadNfcLogoOnce.js

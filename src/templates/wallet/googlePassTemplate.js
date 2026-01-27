@@ -98,7 +98,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
       ? {
           heroImage: {
             sourceUri: {
-              uri: companyProfile?.profile_image?.image_url,
+              uri: employee.profile_image?.image_url,
             },
             contentDescription: {
               defaultValue: {
@@ -110,21 +110,17 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
         }
       : {}),
 
-    ...(companyProfile?.profile_image?.image_url
-      ? {
-          logo: {
-            sourceUri: {
-              uri: employee.profile_image?.image_url,
-            },
-            contentDescription: {
-              defaultValue: {
-                language: 'en-US',
-                value: companyProfile.company_name || 'Company Logo',
-              },
-            },
-          },
-        }
-      : {}),
+    logo: {
+      sourceUri: {
+        uri: 'https://www.eurosystemsint.com/images/1769525031563-nfc-logo-without-text.jpg',
+      },
+      contentDescription: {
+        defaultValue: {
+          language: 'en-US',
+          value: companyProfile?.company_name || 'Company Logo',
+        },
+      },
+    },
 
     cardTitle: {
       defaultValue: {
@@ -135,7 +131,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
     subheader: {
       defaultValue: {
         language: 'en-US',
-        value: 'EMPLOYEE CARD',
+        value: 'Name',
       },
     },
     header: {
