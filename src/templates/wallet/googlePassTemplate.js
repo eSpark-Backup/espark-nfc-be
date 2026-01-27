@@ -35,32 +35,6 @@ export const createGenericClassPayload = (companyProfile) => {
               },
             },
           },
-          {
-            oneItem: {
-              item: {
-                firstValue: {
-                  fields: [
-                    {
-                      fieldPath: "object.textModulesData['email']",
-                    },
-                  ],
-                },
-              },
-            },
-          },
-          {
-            oneItem: {
-              item: {
-                firstValue: {
-                  fields: [
-                    {
-                      fieldPath: "object.textModulesData['phone']",
-                    },
-                  ],
-                },
-              },
-            },
-          },
         ],
       },
     },
@@ -124,7 +98,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
       ? {
           heroImage: {
             sourceUri: {
-              uri: employee.profile_image.image_url,
+              uri: companyProfile?.profile_image?.image_url,
             },
             contentDescription: {
               defaultValue: {
@@ -140,7 +114,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
       ? {
           logo: {
             sourceUri: {
-              uri: companyProfile.profile_image.image_url,
+              uri: employee.profile_image?.image_url,
             },
             contentDescription: {
               defaultValue: {
@@ -155,7 +129,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
     cardTitle: {
       defaultValue: {
         language: 'en-US',
-        value: employee.name,
+        value: companyProfile?.company_name || 'Company',
       },
     },
     subheader: {
@@ -167,7 +141,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
     header: {
       defaultValue: {
         language: 'en-US',
-        value: companyProfile?.company_name || 'Company',
+        value: employee.name,
       },
     },
     textModulesData: [
@@ -246,7 +220,7 @@ export const createGenericObjectPayload = (employee, companyProfile) => {
       value: `${process.env.BASE_URL}/api/employees/${employee.employee_id}/contact`,
       alternateText: employee.employee_id,
     },
-    hexBackgroundColor: '#1a73e8',
+    hexBackgroundColor: '#ffffff',
   };
 };
 
@@ -281,23 +255,4 @@ export const validateEmployeeData = (employee) => {
   }
 
   return true;
-};
-
-/**
- * Helper function to format employee data for display
- */
-export const formatEmployeeDisplayData = (employee) => {
-  return {
-    fullName: employee.name.trim(),
-    designation: employee.designation.trim(),
-    employeeId: employee.employee_id,
-    email: employee.email.toLowerCase(),
-    phone: employee.phone_number,
-    department: employee.department_id?.name || 'Not Assigned',
-    joiningDate: new Date(employee.joining_date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }),
-  };
 };

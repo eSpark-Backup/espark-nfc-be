@@ -330,18 +330,11 @@ class AppleWalletGenerator {
       });
 
       // Secondary fields
-      pass.secondaryFields.push(
-        {
-          key: 'designation',
-          label: 'DESIGNATION',
-          value: employee.designation,
-        },
-        {
-          key: 'employee_id',
-          label: 'EMPLOYEE ID',
-          value: employee.employee_id,
-        }
-      );
+      pass.secondaryFields.push({
+        key: 'designation',
+        label: 'DESIGNATION',
+        value: employee.designation,
+      });
 
       // Back fields
       const backFields = [
@@ -470,7 +463,7 @@ class AppleWalletGenerator {
       throw error;
     }
   }
-  
+
   validatePassBuffer(passBuffer) {
     try {
       if (!Buffer.isBuffer(passBuffer)) {
